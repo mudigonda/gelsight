@@ -4,3 +4,9 @@ dotmap
 mujoco-py<1.50.2,>=1.50.1
 gym
 pytorch
+moviepy
+
+pyopengl
+pyopengl_accelerate
+pillow
+glfw
