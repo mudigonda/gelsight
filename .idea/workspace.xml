@@ -2,24 +2,10 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="cf9bf648-95f9-4e11-9a3e-843e09327f57" name="Default" comment="">
-      <change beforePath="" afterPath="$PROJECT_DIR$/.idea/other.xml" />
-      <change beforePath="" afterPath="$PROJECT_DIR$/RGB2video.py" />
-      <change beforePath="" afterPath="$PROJECT_DIR$/blender_client.py" />
-      <change beforePath="" afterPath="$PROJECT_DIR$/blender_server.py" />
-      <change beforePath="" afterPath="$PROJECT_DIR$/demo_openGL.py" />
-      <change beforePath="" afterPath="$PROJECT_DIR$/demo_savescreen.py" />
-      <change beforePath="" afterPath="$PROJECT_DIR$/src/__init__.py" />
-      <change beforePath="" afterPath="$PROJECT_DIR$/src/common.py" />
-      <change beforePath="" afterPath="$PROJECT_DIR$/src/csgl/__init__.py" />
-      <change beforePath="" afterPath="$PROJECT_DIR$/src/csgl/mat4.py" />
-      <change beforePath="" afterPath="$PROJECT_DIR$/src/csgl/multimethods.py" />
-      <change beforePath="" afterPath="$PROJECT_DIR$/src/csgl/test_mat4.py" />
-      <change beforePath="" afterPath="$PROJECT_DIR$/src/csgl/test_vec3.py" />
-      <change beforePath="" afterPath="$PROJECT_DIR$/src/csgl/test_vec4.py" />
-      <change beforePath="" afterPath="$PROJECT_DIR$/src/csgl/vec3.py" />
-      <change beforePath="" afterPath="$PROJECT_DIR$/src/csgl/vec4.py" />
-      <change beforePath="$PROJECT_DIR$/README.md" afterPath="$PROJECT_DIR$/README.md" />
-      <change beforePath="$PROJECT_DIR$/requirements.txt" afterPath="$PROJECT_DIR$/requirements.txt" />
+      <change beforePath="" afterPath="$PROJECT_DIR$/demo_sphere_light.py" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/demo_openGL.py" afterPath="$PROJECT_DIR$/demo_openGL.py" />
+      <change beforePath="$PROJECT_DIR$/test.png" afterPath="" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -31,9 +17,10 @@
   <component name="CoverageDataManager">
     <SUITE FILE_PATH="coverage/tactile_servo$simulator.coverage" NAME="simulator Coverage Results" MODIFIED="1521490916415" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/tactile_servo$tutorial8.coverage" NAME="tutorial8 Coverage Results" MODIFIED="1521761495190" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/opengl_tutorials_python-master" />
+    <SUITE FILE_PATH="coverage/tactile_servo$demo_sphere_light.coverage" NAME="demo_sphere_light Coverage Results" MODIFIED="1523064123389" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/tactile_servo$demo_savescreen.coverage" NAME="demo_savescreen Coverage Results" MODIFIED="1521578891393" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/tactile_servo$py_test_in_test_openGL_py.coverage" NAME="py.test in test_openGL.py Coverage Results" MODIFIED="1521578142262" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/tactile_servo$demo_openGL.coverage" NAME="demo_openGL Coverage Results" MODIFIED="1522815252767" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/tactile_servo$demo_openGL.coverage" NAME="demo_openGL Coverage Results" MODIFIED="1523065245483" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
   <component name="DatabaseView">
     <option name="SHOW_INTERMEDIATE" value="true" />
@@ -48,24 +35,48 @@
     <select />
   </component>
   <component name="FileEditorManager">
-    <leaf SIDE_TABS_SIZE_LIMIT_KEY="115">
-      <file leaf-file-name="tutorial4.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/opengl_tutorials_python-master/tutorial4.py">
+    <leaf SIDE_TABS_SIZE_LIMIT_KEY="75">
+      <file leaf-file-name="demo_openGL.py" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/demo_openGL.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="135">
-              <caret line="24" column="18" lean-forward="false" selection-start-line="24" selection-start-column="18" selection-end-line="24" selection-end-column="18" />
+            <state relative-caret-position="141">
+              <caret line="245" column="65" lean-forward="false" selection-start-line="245" selection-start-column="65" selection-end-line="245" selection-end-column="65" />
+              <folding>
+                <element signature="e#27#91#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="demo_sphere_light.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/demo_sphere_light.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="695">
+              <caret line="231" column="17" lean-forward="true" selection-start-line="231" selection-start-column="17" selection-end-line="231" selection-end-column="17" />
+              <folding>
+                <element signature="e#27#91#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="_pydev_execfile.py" pinned="false" current-in-tab="false">
+        <entry file="file://$APPLICATION_HOME_DIR$/helpers/pydev/_pydev_imps/_pydev_execfile.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="255">
+              <caret line="17" column="0" lean-forward="false" selection-start-line="17" selection-start-column="0" selection-end-line="17" selection-end-column="0" />
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="demo_openGL.py" pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/demo_openGL.py">
+      <file leaf-file-name="simulator.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/simulator.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="186">
-              <caret line="278" column="24" lean-forward="true" selection-start-line="278" selection-start-column="24" selection-end-line="278" selection-end-column="24" />
+            <state relative-caret-position="225">
+              <caret line="15" column="27" lean-forward="true" selection-start-line="15" selection-start-column="0" selection-end-line="16" selection-end-column="0" />
               <folding>
-                <element signature="e#0#21#0" expanded="true" />
+                <marker date="1521500980568" expanded="true" signature="2383:2461" ph="..." />
               </folding>
             </state>
           </provider>
@@ -75,7 +86,7 @@
         <entry file="file://$PROJECT_DIR$/src/ColorFragmentShader.fragmentshader">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="210">
-              <caret line="14" column="1" lean-forward="true" selection-start-line="14" selection-start-column="1" selection-end-line="14" selection-end-column="1" />
+              <caret line="14" column="1" lean-forward="false" selection-start-line="14" selection-start-column="1" selection-end-line="14" selection-end-column="1" />
               <folding />
             </state>
           </provider>
@@ -121,16 +132,6 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="glew_wish.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/opengl_tutorials_python-master/glew_wish.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="285">
-              <caret line="31" column="20" lean-forward="false" selection-start-line="31" selection-start-column="20" selection-end-line="31" selection-end-column="20" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
       <file leaf-file-name="pydev_import_hook.py" pinned="false" current-in-tab="false">
         <entry file="file://$APPLICATION_HOME_DIR$/helpers/pydev/_pydev_bundle/pydev_import_hook.py">
           <provider selected="true" editor-type-id="text-editor">
@@ -158,6 +159,9 @@
       <find>program_id</find>
       <find>vertex_array_id</find>
       <find>DIM</find>
+      <find>window</find>
+      <find>radius</find>
+      <find>user_height</find>
     </findStrings>
     <replaceStrings>
       <replace>/</replace>
@@ -198,6 +202,7 @@
         <option value="$PROJECT_DIR$/src/csgl/vec3.py" />
         <option value="$PROJECT_DIR$/src/csgl/mat4.py" />
         <option value="$PROJECT_DIR$/README.md" />
+        <option value="$PROJECT_DIR$/demo_sphere_light.py" />
         <option value="$PROJECT_DIR$/demo_openGL.py" />
       </list>
     </option>
@@ -236,11 +241,6 @@
             <path>
               <item name="tactile-servo" type="b2602c69:ProjectViewProjectNode" />
               <item name="tactile-servo" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="tactile-servo" type="b2602c69:ProjectViewProjectNode" />
-              <item name="tactile-servo" type="462c0819:PsiDirectoryNode" />
-              <item name="src" type="462c0819:PsiDirectoryNode" />
             </path>
           </expand>
           <select />
@@ -317,7 +317,7 @@
       <option name="EMULATE_TERMINAL" value="false" />
       <option name="MODULE_MODE" value="false" />
     </configuration>
-    <configuration name="tutorial3" type="PythonConfigurationType" factoryName="Python" temporary="true">
+    <configuration name="demo_sphere_light" type="PythonConfigurationType" factoryName="Python" temporary="true">
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
       <envs>
@@ -325,13 +325,13 @@
         <env name="PYDEVD_LOAD_VALUES_ASYNC" value="True" />
       </envs>
       <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/opengl_tutorials_python-master" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <module name="tactile-servo" />
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/opengl_tutorials_python-master/tutorial3.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/demo_sphere_light.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="true" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -398,19 +398,19 @@
       <option name="MODULE_MODE" value="false" />
     </configuration>
     <list size="5">
-      <item index="0" class="java.lang.String" itemvalue="Python.tutorial3" />
-      <item index="1" class="java.lang.String" itemvalue="Python.tutorial4" />
-      <item index="2" class="java.lang.String" itemvalue="Python.tutorial5" />
-      <item index="3" class="java.lang.String" itemvalue="Python.tutorial6" />
-      <item index="4" class="java.lang.String" itemvalue="Python.demo_openGL" />
+      <item index="0" class="java.lang.String" itemvalue="Python.tutorial4" />
+      <item index="1" class="java.lang.String" itemvalue="Python.tutorial5" />
+      <item index="2" class="java.lang.String" itemvalue="Python.tutorial6" />
+      <item index="3" class="java.lang.String" itemvalue="Python.demo_openGL" />
+      <item index="4" class="java.lang.String" itemvalue="Python.demo_sphere_light" />
     </list>
     <recent_temporary>
       <list size="5">
         <item index="0" class="java.lang.String" itemvalue="Python.demo_openGL" />
-        <item index="1" class="java.lang.String" itemvalue="Python.tutorial4" />
-        <item index="2" class="java.lang.String" itemvalue="Python.tutorial6" />
-        <item index="3" class="java.lang.String" itemvalue="Python.tutorial5" />
-        <item index="4" class="java.lang.String" itemvalue="Python.tutorial3" />
+        <item index="1" class="java.lang.String" itemvalue="Python.demo_sphere_light" />
+        <item index="2" class="java.lang.String" itemvalue="Python.tutorial4" />
+        <item index="3" class="java.lang.String" itemvalue="Python.tutorial6" />
+        <item index="4" class="java.lang.String" itemvalue="Python.tutorial5" />
       </list>
     </recent_temporary>
   </component>
@@ -444,15 +444,15 @@
     <layout>
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
-      <window_info id="Documentation" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.15261473" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" x="0" y="0" width="430" height="880" />
-      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.2950644" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Documentation" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.15261473" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" x="0" y="0" width="430" height="880" />
+      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.28004292" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32939914" sideWeight="0.5" order="11" side_tool="false" content_ui="tabs" />
       <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32939914" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32939914" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" />
       <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.12860192" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="Docker" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32939914" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
       <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32977587" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
-      <window_info id="SciView" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.34364995" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
+      <window_info id="SciView" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.34364995" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.305794" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
@@ -512,6 +512,26 @@
           <line>168</line>
           <option name="timeStamp" value="16" />
         </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/demo_sphere_light.py</url>
+          <line>156</line>
+          <option name="timeStamp" value="27" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/demo_sphere_light.py</url>
+          <line>242</line>
+          <option name="timeStamp" value="28" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/demo_sphere_light.py</url>
+          <line>154</line>
+          <option name="timeStamp" value="30" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/demo_openGL.py</url>
+          <line>133</line>
+          <option name="timeStamp" value="32" />
+        </line-breakpoint>
       </breakpoints>
       <default-breakpoints>
         <breakpoint type="python-exception">
@@ -520,50 +540,50 @@
           </properties>
         </breakpoint>
       </default-breakpoints>
-      <option name="time" value="19" />
+      <option name="time" value="33" />
     </breakpoint-manager>
     <watches-manager />
   </component>
   <component name="debuggerHistoryManager">
     <expressions id="evaluateCodeFragment">
       <expression>
-        <expression-string>image.save('jpap.png')</expression-string>
+        <expression-string>255 / depthmap.max()</expression-string>
         <language-id>Python</language-id>
         <evaluation-mode>CODE_FRAGMENT</evaluation-mode>
       </expression>
       <expression>
-        <expression-string>image.save('jpap', 'png')</expression-string>
+        <expression-string>depthmap.max()</expression-string>
         <language-id>Python</language-id>
         <evaluation-mode>CODE_FRAGMENT</evaluation-mode>
       </expression>
       <expression>
-        <expression-string>image.show()</expression-string>
+        <expression-string>resolution = [100, 100]
+xyz = [0, 0]  # move to xy coordinates [-1,+1]
+x = np.linspace(-1, 1, resolution[0])
+y = np.linspace(-1, 1, resolution[1])
+xv, yv = np.meshgrid(x, y)
+pressure = 12
+depthmap = pressure * multivariate_normal.pdf(np.stack((xv, yv), axis=2), mean=xyz, cov=0.01)
+depthmap = np.uint8(np.maximum(np.minimum(depthmap, 255), 0))
+plt.figure()
+plt.imshow(depthmap)
+plt.show()</expression-string>
         <language-id>Python</language-id>
         <evaluation-mode>CODE_FRAGMENT</evaluation-mode>
       </expression>
       <expression>
-        <expression-string>window</expression-string>
+        <expression-string>depthmap = np.uint8(np.maximum(np.minimum(depthmap, 0), 255))</expression-string>
         <language-id>Python</language-id>
         <evaluation-mode>CODE_FRAGMENT</evaluation-mode>
       </expression>
       <expression>
-        <expression-string>image = pygame.Surface((256, 256))
-out = image.blit(display, (0, 0), ((0,0),(256,256) ))  # Blit portion of the display to the image</expression-string>
+        <expression-string>pressure = 12
+depthmap = pressure * multivariate_normal.pdf(np.stack((xv, yv), axis=2), mean=xyz, cov=0.01)</expression-string>
         <language-id>Python</language-id>
         <evaluation-mode>CODE_FRAGMENT</evaluation-mode>
       </expression>
       <expression>
-        <expression-string>image = pygame.Surface((256, 256))</expression-string>
-        <language-id>Python</language-id>
-        <evaluation-mode>CODE_FRAGMENT</evaluation-mode>
-      </expression>
-      <expression>
-        <expression-string>np.clip(pressure * multivariate_normal.pdf(np.stack((xv, yv), axis=2), mean=xyz, cov=1), 0, 100)</expression-string>
-        <language-id>Python</language-id>
-        <evaluation-mode>CODE_FRAGMENT</evaluation-mode>
-      </expression>
-      <expression>
-        <expression-string>multivariate_normal.pdf(np.stack((xv, yv), axis=2), mean=xyz, cov=1)</expression-string>
+        <expression-string>15* multivariate_normal.pdf(np.stack((xv, yv), axis=2), mean=xyz, cov=0.01)</expression-string>
         <language-id>Python</language-id>
         <evaluation-mode>CODE_FRAGMENT</evaluation-mode>
       </expression>
@@ -572,16 +592,22 @@ out = image.blit(display, (0, 0), ((0,0),(256,256) ))  # Blit portion of the dis
         <language-id>Python</language-id>
         <evaluation-mode>CODE_FRAGMENT</evaluation-mode>
       </expression>
+      <expression>
+        <expression-string>pressure = 15
+  depthmap = pressure * multivariate_normal.pdf(np.stack((xv, yv), axis=2), mean=xyz, cov=0.01)</expression-string>
+        <language-id>Python</language-id>
+        <evaluation-mode>CODE_FRAGMENT</evaluation-mode>
+      </expression>
+      <expression>
+        <expression-string>plt.figure()
+plt.imshow(depthmap)
+plt.show()</expression-string>
+        <language-id>Python</language-id>
+        <evaluation-mode>CODE_FRAGMENT</evaluation-mode>
+      </expression>
     </expressions>
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/src/env/particle2D.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="450">
-          <caret line="34" column="20" lean-forward="false" selection-start-line="34" selection-start-column="20" selection-end-line="34" selection-end-column="20" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/simulator.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
@@ -641,13 +667,7 @@ out = image.blit(display, (0, 0), ((0,0),(256,256) ))  # Blit portion of the dis
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="480">
           <caret line="33" column="61" lean-forward="false" selection-start-line="33" selection-start-column="61" selection-end-line="33" selection-end-column="61" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$APPLICATION_HOME_DIR$/helpers/pydev/_pydev_imps/_pydev_execfile.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="255">
-          <caret line="17" column="0" lean-forward="false" selection-start-line="17" selection-start-column="0" selection-end-line="17" selection-end-column="0" />
+          <folding />
         </state>
       </provider>
     </entry>
@@ -743,16 +763,6 @@ out = image.blit(display, (0, 0), ((0,0),(256,256) ))  # Blit portion of the dis
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/simulator.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-1675">
-          <caret line="51" column="25" lean-forward="false" selection-start-line="51" selection-start-column="25" selection-end-line="51" selection-end-column="25" />
-          <folding>
-            <marker date="1521500980568" expanded="true" signature="2383:2461" ph="..." />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/blender_model_gelsight.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="270">
@@ -807,6 +817,7 @@ out = image.blit(display, (0, 0), ((0,0),(256,256) ))  # Blit portion of the dis
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="255">
           <caret line="23" column="0" lean-forward="true" selection-start-line="23" selection-start-column="0" selection-end-line="23" selection-end-column="0" />
+          <folding />
         </state>
       </provider>
     </entry>
@@ -838,14 +849,6 @@ out = image.blit(display, (0, 0), ((0,0),(256,256) ))  # Blit portion of the dis
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/requirements.txt">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="180">
-          <caret line="12" column="0" lean-forward="true" selection-start-line="12" selection-start-column="0" selection-end-line="12" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/opengl_tutorials_python-master/tutorial6.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="264">
@@ -855,7 +858,7 @@ out = image.blit(display, (0, 0), ((0,0),(256,256) ))  # Blit portion of the dis
     </entry>
     <entry file="file://$PROJECT_DIR$/opengl_tutorials_python-master/tutorial4.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="135">
+        <state relative-caret-position="0">
           <caret line="24" column="18" lean-forward="false" selection-start-line="24" selection-start-column="18" selection-end-line="24" selection-end-column="18" />
           <folding />
         </state>
@@ -935,7 +938,7 @@ out = image.blit(display, (0, 0), ((0,0),(256,256) ))  # Blit portion of the dis
     <entry file="file://$PROJECT_DIR$/src/ColorFragmentShader.fragmentshader">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="210">
-          <caret line="14" column="1" lean-forward="true" selection-start-line="14" selection-start-column="1" selection-end-line="14" selection-end-column="1" />
+          <caret line="14" column="1" lean-forward="false" selection-start-line="14" selection-start-column="1" selection-end-line="14" selection-end-column="1" />
           <folding />
         </state>
       </provider>
@@ -948,12 +951,48 @@ out = image.blit(display, (0, 0), ((0,0),(256,256) ))  # Blit portion of the dis
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/requirements.txt">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="30">
+          <caret line="2" column="6" lean-forward="false" selection-start-line="2" selection-start-column="0" selection-end-line="2" selection-end-column="6" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/simulator.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="225">
+          <caret line="15" column="27" lean-forward="true" selection-start-line="15" selection-start-column="0" selection-end-line="16" selection-end-column="0" />
+          <folding>
+            <marker date="1521500980568" expanded="true" signature="2383:2461" ph="..." />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$APPLICATION_HOME_DIR$/helpers/pydev/_pydev_imps/_pydev_execfile.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="255">
+          <caret line="17" column="0" lean-forward="false" selection-start-line="17" selection-start-column="0" selection-end-line="17" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/demo_sphere_light.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="695">
+          <caret line="231" column="17" lean-forward="true" selection-start-line="231" selection-start-column="17" selection-end-line="231" selection-end-column="17" />
+          <folding>
+            <element signature="e#27#91#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/demo_openGL.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="186">
-          <caret line="278" column="24" lean-forward="true" selection-start-line="278" selection-start-column="24" selection-end-line="278" selection-end-column="24" />
+        <state relative-caret-position="141">
+          <caret line="245" column="65" lean-forward="false" selection-start-line="245" selection-start-column="65" selection-end-line="245" selection-end-column="65" />
           <folding>
-            <element signature="e#0#21#0" expanded="true" />
+            <element signature="e#27#91#0" expanded="true" />
           </folding>
         </state>
       </provider>

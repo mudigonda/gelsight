@@ -1,89 +1,120 @@
+# Compatibility Python 2/3
+from __future__ import division, print_function, absolute_import
+from builtins import range
+# ----------------------------------------------------------------------------------------------------------------------
+
+import numpy as np
+from dotmap import DotMap
+import matplotlib.pyplot as plt
 from PIL import Image
-from OpenGL.GL import *
-from OpenGL.GL.ARB import *
-from OpenGL.GLU import *
-from OpenGL.GLUT import *
-from OpenGL.GLUT.special import *
-# from OpenGL.GL.shaders import *
-from OpenGL.arrays import vbo
-from OpenGL.GL import shaders
+from math import *
 
-from glew_wish import *
-
-from src.csgl import *
-
-import src.common as common
-import glfw
-import sys
-import os
-
-# Global window
-window = None
-null = c_void_p(0)
+# OpenGL imports for python
+try:
+    from OpenGL.GL import *
+    from OpenGL.GLU import *
+    from OpenGL.GLUT import *
+except:
+    print("OpenGL wrapper for python not found")
 
 
-def key_event(window, key, scancode, action, mods):
-    """ Handle keyboard events
-
-        Note:  It's not important to understand how this works just yet.
-        Keyboard and mouse inputs are covered in Tutorial 6
+class GelSightRender:
     """
-    if action == glfw.PRESS and key == glfw.KEY_D:
-        if glIsEnabled(GL_DEPTH_TEST):
-            glDisable(GL_DEPTH_TEST)
-        else:
-            glEnable(GL_DEPTH_TEST)
-
-        glDepthFunc(GL_LESS)
-
-
-class gelsight_renderer():
-    """
-    Render GelSight images
+    GelSight Renderer
     """
 
-    def __init__(self):
-        self.window = None
-        self.resolution = [1024, 768]  # Resolution window
-
-    def opengl_init(self):
-        global window
-        # Initialize the library
-        if not glfw.init():
-            print("Failed to initialize GLFW\n", file=sys.stderr)
-            return False
-
-        # Open Window and create its OpenGL context
-        window = glfw.create_window(self.resolution[0], self.resolution[1], "GelSight Render", None,
-                                    None)  # (in the accompanying source code this variable will be global)
-        glfw.window_hint(glfw.SAMPLES, 4)
-        glfw.window_hint(glfw.CONTEXT_VERSION_MAJOR, 3)
-        glfw.window_hint(glfw.CONTEXT_VERSION_MINOR, 3)
-        glfw.window_hint(glfw.OPENGL_FORWARD_COMPAT, GL_TRUE)
-        glfw.window_hint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
-
-        if not window:
-            print(
-                "Failed to open GLFW window. If you have an Intel GPU, they are not 3.3 compatible. Try the 2.1 version of the tutorials.\n",
-                file=sys.stderr)
-            glfw.terminate()
-            return False
-
-        # Initialize GLEW
-        glfw.make_context_current(window)
-        glewExperimental = True
-
-        # GLEW is a framework for testing extension availability.  Please see tutorial notes for
-        # more information including why can remove this code.
-        if glewInit() != GLEW_OK:
-            print("Failed to initialize GLEW\n", file=sys.stderr)
-            return False
-        return True
-
-    def save2file(self, nameFile='test.png'):
+    def __init__(self, p={}):
         """
-        Save the OpenGL buffer to file
-        :param nameFile:
+
+        """
+        self.resolution = [256, 256]  # Resolution window
+        self.resolutionInput = [100, 100]  # Resolution of the input DepthMap
+        self.depthmapClip = 0.5  # Maximum deformation of the gel
+        self.markers = False  #
+
+        # Position Camera
+        self.camera = DotMap()
+        self.camera.pos = [2, 0, 0]
+
+        # Position and intensity of the lights
+        self.radius = 1.5
+        self.intensity = 0.8
+        self.lights = [DotMap(), DotMap(), DotMap()]
+        self.lights[0].angle = 0
+        self.lights[0].direction = [3.0, self.radius*np.sin(self.lights[0].angle), self.radius*np.cos(self.lights[0].angle), self.intensity]
+        self.lights[0].rgba = [0.0, 0.0, 1.0, 1.0]
+        self.lights[1].angle = 2*np.pi*1/3
+        self.lights[1].direction = [3.0, self.radius*np.sin(self.lights[1].angle), self.radius*np.cos(self.lights[1].angle), self.intensity]
+        self.lights[1].rgba = [0.0, 1.0, 0.0, 1.0]
+        self.lights[2].angle = 2*np.pi*2/3
+        self.lights[2].direction = [3.0, self.radius*np.sin(self.lights[2].angle), self.radius*np.cos(self.lights[2].angle), self.intensity]
+        self.lights[2].rgba = [1.0, 0.0, 0.0, 1.0]
+
+        # Intensity of ambient light
+        self.ambient_intensity = [0.1, 0.1, 0.1, 0.0]
+        self.surface = GL_SMOOTH  # The surface type(Flat or Smooth)
+
+        self.init()
+
+    def init(self):
+        """
+        Initialiaze rendering
+        :return:
+        """
+
+        glutInit(sys.argv)  # Initialize the OpenGL pipeline
+        glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH)  # Set OpenGL display mode
+        # Set the Window size and position
+        glutInitWindowSize(self.resolution[0], self.resolution[1])
+        glutInitWindowPosition(50, 100)
+        glutCreateWindow('GelSight Renderer')  # Create the window with given title
+
+        # Set background color to black
+        glClearColor(0.0, 0.0, 0.0, 0.0)
+
+        d = sqrt(self.camera.pos[0]*self.camera.pos[0] +
+                 self.camera.pos[1]*self.camera.pos[1] +
+                 self.camera.pos[2]*self.camera.pos[2])
+
+        # Set matrix mode
+        glMatrixMode(GL_PROJECTION)
+
+        # Reset matrix
+        glLoadIdentity()
+        glFrustum(-d * 0.5, d * 0.5, -d * 0.5, d * 0.5, d - 1.0, d + 1.0)
+
+        # Set camera
+        gluLookAt(self.camera.pos[0], self.camera.pos[1], self.camera.pos[2], 0, 0, 0, 0, 0, 1)
+
+        # Set OpenGL parameters
+        glEnable(GL_DEPTH_TEST)
+
+        # Enable lighting
+        glEnable(GL_LIGHTING)
+
+        # Set light model
+        glLightModelfv(GL_LIGHT_MODEL_AMBIENT, self.ambient_intensity)
+
+        # Enable light number 0
+        glEnable(GL_LIGHT0)
+        glLightfv(GL_LIGHT0, GL_POSITION, self.lights[0].direction)
+        glLightfv(GL_LIGHT0, GL_DIFFUSE, self.lights[0].rgba)
+        # Enable light number 1
+        glEnable(GL_LIGHT1)
+        glLightfv(GL_LIGHT1, GL_POSITION, self.lights[1].direction)
+        glLightfv(GL_LIGHT1, GL_DIFFUSE, self.lights[1].rgba)
+        # Enable light number 2
+        glEnable(GL_LIGHT2)
+        glLightfv(GL_LIGHT2, GL_POSITION, self.lights[2].direction)
+        glLightfv(GL_LIGHT2, GL_DIFFUSE, self.lights[2].rgba)
+
+        # Setup the material
+        glEnable(GL_COLOR_MATERIAL)
+        glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE)
+
+    def extractImage(self):
+        """
+        Extract the RGB pixels from the window
         :return:
         """
         buffer = (GLubyte * (3 * self.resolution[0] * self.resolution[1]))(0)
@@ -91,208 +122,147 @@ class gelsight_renderer():
         # Use PIL to convert raw RGB buffer and flip the right way up
         image = Image.frombytes(mode="RGB", size=(self.resolution[0], self.resolution[1]), data=buffer)
         image = image.transpose(Image.FLIP_TOP_BOTTOM)
-        # Save image to disk
-        image.save(nameFile)
+        return image
 
-    def draw_gelsight(self, depthmap=None):
-        # Enable key events
-        glfw.set_input_mode(window, glfw.STICKY_KEYS, GL_TRUE)
+    def save2file(self, nameFile):
+        """
+        Save the OpenGL buffer to file
+        :param nameFile:
+        :return:
+        """
+        image = self.extractImage()
+        image.save(nameFile)  # Save image to disk
 
-        # Enable key event callback
-        glfw.set_key_callback(window, key_event)
+    def draw(self, depthmap=None):
+        """
+        Draw the surface
+        :param depthmap: array [x,y] in [0, 256]
+        :return:
+        """
 
-        # Set opengl clear color to something other than red (color used by the fragment shader)
-        glClearColor(0, 0, 0, 0)  # (R,G,B,A) => Black background
+        x = np.linspace(-1, 1, num=self.resolutionInput[0])
+        y = np.linspace(-1, 1, num=self.resolutionInput[1])
+        # TODO: add curvature to the surface
+        # TODO: Add markers to the surface
+        # Make gel
+        z = np.ones((self.resolutionInput[0], self.resolutionInput[1]))  # Rest position of the surface
+        # Add normalized depthmap
+        z = z - self.depthmapClip * depthmap/256
 
-        self.vertex_array_id = glGenVertexArrays(1)
-        glBindVertexArray(self.vertex_array_id)
+        for j in range(self.resolutionInput[0]-1):
+            glBegin(GL_QUAD_STRIP)  # Begin a strip
+            for i in range(self.resolutionInput[1]):
+                glNormal3f(z[i, j], x[j],  y[i])
+                glVertex3f(z[i, j], x[j],  y[i])
+                glNormal3f(z[i, j+1], x[j+1], y[i])
+                glVertex3f(z[i, j+1], x[j+1], y[i])
+            glEnd()  # End of the strip
 
-        self.program_id = common.LoadShaders("./src/TransformVertexShader.vertexshader",
-                                             "./src/ColorFragmentShader.fragmentshader")
 
-        # Get a handle for our "MVP" uniform
-        matrix_id = glGetUniformLocation(self.program_id, "MVP")
+    # def special(self, key, x, y):
+    #     # Keyboard controller for sphere
+    #
+    #     # # Scale the sphere up or down
+    #     # if key == GLUT_KEY_UP:
+    #     #     self.user_height += 0.1
+    #     # if key == GLUT_KEY_DOWN:
+    #     #     self.user_height -= 0.1
+    #     #
+    #     # # Rotate the cube
+    #     # if key == GLUT_KEY_LEFT:
+    #     #     self.user_theta += 0.1
+    #     # if key == GLUT_KEY_RIGHT:
+    #     #     self.user_theta -= 0.1
+    #
+    #     # Toggle the surface
+    #     if key == GLUT_KEY_F1:
+    #         if self.surface == GL_FLAT:
+    #             self.surface = GL_SMOOTH
+    #         else:
+    #             self.surface = GL_FLAT
+    #
+    #     glutPostRedisplay()
+    #
+    # # The idle callback
+    # def idle(self):
+    #     global last_time
+    #     time = glutGet(GLUT_ELAPSED_TIME)
+    #
+    #     if last_time == 0 or time >= last_time + 40:
+    #         last_time = time
+    #         glutPostRedisplay()
+    #         self.save2file()
+    #
+    # # The visibility callback
+    # def visible(self, vis):
+    #     if vis == GLUT_VISIBLE:
+    #         glutIdleFunc(self.idle)
+    #     else:
+    #         glutIdleFunc(None)
 
-        # Projection matrix : 45 Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
-        projection = mat4.perspective(45.0, 4.0 / 3.0, 0.1, 100.0)
+    def render(self, depthmap=None):
+        """
+        Render a depthmap as a GelSight contact
+        :param depthmap:
+        :return:
+        """
 
-        # Camera matrix
-        view = mat4.lookat(vec3(4, 0, 0),  # Camera is at (4,3, -3), in World Space
-                           vec3(0, 0, 0),  # and looks at the origin
-                           vec3(0, 1, 0))
-
-        # Model matrix : an identity matrix (model will be at the origin)
-        model = mat4.identity()
-
-        # Our ModelViewProjection : multiplication of our 3 matrices
-        mvp = projection * view * model
-
-        # Our vertices. Tree consecutive floats give a 3D vertex; Three consecutive vertices give a triangle.
-        # A cube has 6 faces with 2 triangles each, so this makes 6*2=12 triangles, and 12*3 vertices
-        vertex_data = [
-            -1.0, -1.0, -1.0,
-            -1.0, -1.0, 1.0,
-            -1.0, 1.0, 1.0,
-            1.0, 1.0, -1.0,
-            -1.0, -1.0, -1.0,
-            -1.0, 1.0, -1.0,
-            1.0, -1.0, 1.0,
-            -1.0, -1.0, -1.0,
-            1.0, -1.0, -1.0,
-            1.0, 1.0, -1.0,
-            1.0, -1.0, -1.0,
-            -1.0, -1.0, -1.0,
-            -1.0, -1.0, -1.0,
-            -1.0, 1.0, 1.0,
-            -1.0, 1.0, -1.0,
-            1.0, -1.0, 1.0,
-            -1.0, -1.0, 1.0,
-            -1.0, -1.0, -1.0,
-            -1.0, 1.0, 1.0,
-            -1.0, -1.0, 1.0,
-            1.0, -1.0, 1.0,
-            1.0, 1.0, 1.0,
-            1.0, -1.0, -1.0,
-            1.0, 1.0, -1.0,
-            1.0, -1.0, -1.0,
-            1.0, 1.0, 1.0,
-            1.0, -1.0, 1.0,
-            1.0, 1.0, 1.0,
-            1.0, 1.0, -1.0,
-            -1.0, 1.0, -1.0,
-            1.0, 1.0, 1.0,
-            -1.0, 1.0, -1.0,
-            -1.0, 1.0, 1.0,
-            1.0, 1.0, 1.0,
-            -1.0, 1.0, 1.0,
-            1.0, -1.0, 1.0]
-
-        # One color for each vertex. They were generated randomly.
-        color_data = [
-            0.583, 0.771, 0.014,
-            0.609, 0.115, 0.436,
-            0.327, 0.483, 0.844,
-            0.822, 0.569, 0.201,
-            0.435, 0.602, 0.223,
-            0.310, 0.747, 0.185,
-            0.597, 0.770, 0.761,
-            0.559, 0.436, 0.730,
-            0.359, 0.583, 0.152,
-            0.483, 0.596, 0.789,
-            0.559, 0.861, 0.639,
-            0.195, 0.548, 0.859,
-            0.014, 0.184, 0.576,
-            0.771, 0.328, 0.970,
-            0.406, 0.615, 0.116,
-            0.676, 0.977, 0.133,
-            0.971, 0.572, 0.833,
-            0.140, 0.616, 0.489,
-            0.997, 0.513, 0.064,
-            0.945, 0.719, 0.592,
-            0.543, 0.021, 0.978,
-            0.279, 0.317, 0.505,
-            0.167, 0.620, 0.077,
-            0.347, 0.857, 0.137,
-            0.055, 0.953, 0.042,
-            0.714, 0.505, 0.345,
-            0.783, 0.290, 0.734,
-            0.722, 0.645, 0.174,
-            0.302, 0.455, 0.848,
-            0.225, 0.587, 0.040,
-            0.517, 0.713, 0.338,
-            0.053, 0.959, 0.120,
-            0.393, 0.621, 0.362,
-            0.673, 0.211, 0.457,
-            0.820, 0.883, 0.371,
-            0.982, 0.099, 0.879]
-
-        # rc: vertex buffer
-        self.vertex_buffer = glGenBuffers(1)
-        array_type = GLfloat * len(vertex_data)
-        glBindBuffer(GL_ARRAY_BUFFER, self.vertex_buffer)
-        glBufferData(GL_ARRAY_BUFFER, len(vertex_data) * 4, array_type(*vertex_data), GL_STATIC_DRAW)
-
-        # rc: Color buffer
-        self.color_buffer = glGenBuffers(1)
-        array_type = GLfloat * len(color_data)
-        glBindBuffer(GL_ARRAY_BUFFER, self.color_buffer)
-        glBufferData(GL_ARRAY_BUFFER, len(color_data) * 4, array_type(*color_data), GL_STATIC_DRAW)
-
-        # Only done once
-        # while glfw.get_key(window, glfw.KEY_ESCAPE) != glfw.PRESS and not glfw.window_should_close(window):
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
-        glUseProgram(self.program_id)
+        # Set color to white
+        glColor3f(1.0, 1.0, 1.0)
 
-        # Send our transformation to the currently bound shader,
-        # in the "MVP" uniform
-        glUniformMatrix4fv(matrix_id, 1, GL_FALSE, mvp.data)
-        # Bind vertex buffer data to the attribute 0 in our shader.
-        # Note:  This can also be done in the VAO itself (see vao_test.py)
+        # Set shade model
+        glShadeModel(self.surface)
 
-        # Enable the vertex attribute at element[0], in this case that's the triangle's vertices
-        # this could also be color, normals, etc.  It isn't necessary to disable these
-        #
-        # 1rst attribute buffer : vertices
-        glEnableVertexAttribArray(0)
-        glBindBuffer(GL_ARRAY_BUFFER, self.vertex_buffer)
-        glVertexAttribPointer(
-            0,  # attribute 0. No particular reason for 0, but must match the layout in the shader.
-            3,  # len(vertex_data)
-            GL_FLOAT,  # type
-            GL_FALSE,  # normalized?
-            0,  # stride
-            null  # array buffer offset (c_type == void*)
-        )
+        self.draw(depthmap)
+        glutSwapBuffers()
 
-        # 2nd attribute buffer : colors
-        glEnableVertexAttribArray(1)
-        glBindBuffer(GL_ARRAY_BUFFER, self.color_buffer)
-        glVertexAttribPointer(
-            1,  # attribute 0. No particular reason for 0, but must match the layout in the shader.
-            3,  # len(vertex_data)
-            GL_FLOAT,  # type
-            GL_FALSE,  # normalized?
-            0,  # stride
-            null  # array buffer offset (c_type == void*)
-        )
-
-        # Draw the triangle !
-        n_triangles = 12
-        glDrawArrays(GL_TRIANGLES, 0, n_triangles * 3)  # 3 indices starting at 0 -> 1 triangle
-
-        # Not strictly necessary because we only have
-        glDisableVertexAttribArray(0)
-        glDisableVertexAttribArray(1)
-
-        # Swap front and back buffers
-        glfw.swap_buffers(window)
-
-    def terminate(self):
-        # note braces around vertex_buffer and vertex_array_id.
-        # These 2 functions expect arrays of values
-        glDeleteBuffers(1, [self.vertex_buffer])
-        glDeleteBuffers(1, [self.color_buffer])
-        glDeleteProgram(self.program_id)
-        glDeleteVertexArrays(1, [self.vertex_array_id])
-
-        glfw.terminate()
-
-    def render(self, depthmap=None, nameFile='test.png'):
-
-        # Init openGL
-        if not self.opengl_init():
-            return
-        # Draw the image
-        self.draw_gelsight(depthmap=depthmap)
-        # Save image to file
-        self.save2file(nameFile=nameFile)
-        # Poll for and process events
-        glfw.poll_events()
-        # Terminate
-        self.terminate()
+    def close(self):
+        """
+        Close rendering
+        :return:
+        """
+        # TODO: implement me!
+        pass
 
 
-if __name__ == "__main__":
-    f = gelsight_renderer()
-    f.render()
+if __name__ == '__main__':
+
+    a = GelSightRender()  # initialize renderer
+
+    # -----------------------
+
+    # Generate test depthmap
+    from scipy.stats import multivariate_normal
+    resolution = [100, 100]
+    xyz = [0.5, 0]  # move to xy coordinates [-1,+1]
+    x = np.linspace(-1, 1, resolution[0])
+    y = np.linspace(-1, 1, resolution[1])
+    xv, yv = np.meshgrid(x, y)
+    pressure = 12
+    depthmap = multivariate_normal.pdf(np.stack((xv, yv), axis=2), mean=xyz, cov=0.3)  # Gaussian
+    depthmap = depthmap * 200 / depthmap.max()
+    depthmap = np.uint8(np.maximum(np.minimum(depthmap, 255), 0))
+
+    plt.figure()
+    plt.imshow(depthmap)
+    plt.show()
+
+    a.render(depthmap=depthmap)
+    a.save2file(nameFile='test_01.png')
+
+    # -----------------------
+
+    resolution = [100, 100]
+    depthmap = np.random.uniform(0, 100, (resolution[0], resolution[1]))
+
+    plt.figure()
+    plt.imshow(depthmap)
+    plt.show()
+
+    a.render(depthmap=depthmap)
+    a.save2file(nameFile='test_02.png')
+    print('Done')
+
+    # -----------------------
