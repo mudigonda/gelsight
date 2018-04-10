@@ -8,6 +8,7 @@ from dotmap import DotMap
 import matplotlib.pyplot as plt
 from PIL import Image
 from math import *
+from scipy.stats import multivariate_normal
 
 # OpenGL imports for python
 try:
@@ -23,14 +24,18 @@ class GelSightRender:
     GelSight Renderer
     """
 
-    def __init__(self, p={}):
+    def __init__(self, parameters=DotMap()):
         """
 
         """
         self.resolution = [256, 256]  # Resolution window
-        self.resolutionInput = [100, 100]  # Resolution of the input DepthMap
+        self.resolutionInput = parameters.get('resolutionInput', [100, 100])  # Resolution of the input DepthMap
         self.depthmapClip = 0.5  # Maximum deformation of the gel
-        self.markers = False  #
+        self.gelBasePos = 1
+        self.gelCurvature = parameters.get('gelCurvature', True)
+        self.gelCurvatureMax = 0.9  # deformation of the gel due to convexity
+        self.gelCurvatureCov = 1
+        self.markers = parameters.get('markers', False)  #
 
         # Position Camera
         self.camera = DotMap()
@@ -53,6 +58,9 @@ class GelSightRender:
         # Intensity of ambient light
         self.ambient_intensity = [0.1, 0.1, 0.1, 0.0]
         self.surface = GL_SMOOTH  # The surface type(Flat or Smooth)
+        self.surface_color = [0.7, 0.7, 0.7]
+
+        self._window = None
 
         self.init()
 
@@ -67,7 +75,7 @@ class GelSightRender:
         # Set the Window size and position
         glutInitWindowSize(self.resolution[0], self.resolution[1])
         glutInitWindowPosition(50, 100)
-        glutCreateWindow('GelSight Renderer')  # Create the window with given title
+        self._window = glutCreateWindow('GelSight Renderer')  # Create the window with given title
 
         # Set background color to black
         glClearColor(0.0, 0.0, 0.0, 0.0)
@@ -114,7 +122,7 @@ class GelSightRender:
 
     def extractImage(self):
         """
-        Extract the RGB pixels from the window
+        Extract the pixels from the window
         :return:
         """
         buffer = (GLubyte * (3 * self.resolution[0] * self.resolution[1]))(0)
@@ -123,6 +131,13 @@ class GelSightRender:
         image = Image.frombytes(mode="RGB", size=(self.resolution[0], self.resolution[1]), data=buffer)
         image = image.transpose(Image.FLIP_TOP_BOTTOM)
         return image
+
+    def extractRGB(self):
+        """
+        Return an RGB numpy array of the current window
+        :return:
+        """
+        return np.array(self.extractImage())
 
     def save2file(self, nameFile):
         """
@@ -140,18 +155,22 @@ class GelSightRender:
         :return:
         """
 
-        x = np.linspace(-1, 1, num=self.resolutionInput[0])
-        y = np.linspace(-1, 1, num=self.resolutionInput[1])
-        # TODO: add curvature to the surface
+        x = np.linspace(-2, 2, num=self.resolutionInput[0]+2)
+        y = np.linspace(-2, 2, num=self.resolutionInput[1]+2)
         # TODO: Add markers to the surface
         # Make gel
-        z = np.ones((self.resolutionInput[0], self.resolutionInput[1]))  # Rest position of the surface
+        z = self.gelBasePos*np.ones((self.resolutionInput[0]+2, self.resolutionInput[1]+2))  # Rest position of the surface
+        # Add curvature to the gel surface
+        xv, yv = np.meshgrid(x, y)
+        curvature = multivariate_normal.pdf(np.stack((xv, yv), axis=2), mean=[0, 0], cov=self.gelCurvatureCov)
+        z = z - self.gelCurvatureMax * curvature/curvature.max()
         # Add normalized depthmap
-        z = z - self.depthmapClip * depthmap/256
+        contact = self.depthmapClip * depthmap/256
+        z[1:-1, 1:-1] = np.clip(z[1:-1, 1:-1] + contact, self.gelBasePos-self.gelCurvatureMax, self.gelBasePos)
 
-        for j in range(self.resolutionInput[0]-1):
+        for j in range(z.shape[0]-1):
             glBegin(GL_QUAD_STRIP)  # Begin a strip
-            for i in range(self.resolutionInput[1]):
+            for i in range(z.shape[1]):
                 glNormal3f(z[i, j], x[j],  y[i])
                 glVertex3f(z[i, j], x[j],  y[i])
                 glNormal3f(z[i, j+1], x[j+1], y[i])
@@ -206,39 +225,45 @@ class GelSightRender:
         :param depthmap:
         :return:
         """
-
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-
-        # Set color to white
-        glColor3f(1.0, 1.0, 1.0)
-
-        # Set shade model
-        glShadeModel(self.surface)
-
+        glColor3f(self.surface_color[0], self.surface_color[1], self.surface_color[2])  # Set color Gel
+        glShadeModel(self.surface)  # Set shade model
         self.draw(depthmap)
         glutSwapBuffers()
+        RGB = self.extractRGB()
+        return RGB
 
     def close(self):
         """
         Close rendering
         :return:
         """
-        # TODO: implement me!
-        pass
+        glutDestroyWindow(self._window)
 
 
 if __name__ == '__main__':
 
+    p = DotMap()
+    p.resolution = [100, 100]
     a = GelSightRender()  # initialize renderer
 
     # -----------------------
 
+    depthmap = np.zeros((p.resolution[0], p.resolution[1]))
+
+    plt.figure()
+    plt.imshow(depthmap)
+    plt.show()
+
+    rgb_groundtruth = a.render(depthmap=depthmap)
+    a.save2file(nameFile='test_00.png')
+
+    # -----------------------
+
     # Generate test depthmap
-    from scipy.stats import multivariate_normal
-    resolution = [100, 100]
     xyz = [0.5, 0]  # move to xy coordinates [-1,+1]
-    x = np.linspace(-1, 1, resolution[0])
-    y = np.linspace(-1, 1, resolution[1])
+    x = np.linspace(-1, 1, p.resolution[0])
+    y = np.linspace(-1, 1, p.resolution[1])
     xv, yv = np.meshgrid(x, y)
     pressure = 12
     depthmap = multivariate_normal.pdf(np.stack((xv, yv), axis=2), mean=xyz, cov=0.3)  # Gaussian
@@ -249,20 +274,30 @@ if __name__ == '__main__':
     plt.imshow(depthmap)
     plt.show()
 
-    a.render(depthmap=depthmap)
+    rgb = a.render(depthmap=depthmap)
     a.save2file(nameFile='test_01.png')
+
+    plt.figure()
+    plt.imshow(np.sum(rgb_groundtruth-rgb, axis=2))
+    plt.show()
 
     # -----------------------
 
     resolution = [100, 100]
-    depthmap = np.random.uniform(0, 100, (resolution[0], resolution[1]))
+    depthmap = np.random.uniform(0, 100, (p.resolution[0], p.resolution[1]))
 
     plt.figure()
     plt.imshow(depthmap)
     plt.show()
 
-    a.render(depthmap=depthmap)
+    rgb = a.render(depthmap=depthmap)
     a.save2file(nameFile='test_02.png')
-    print('Done')
+
+    plt.figure()
+    plt.imshow(np.sum(rgb_groundtruth-rgb, axis=2))
+    plt.show()
 
     # -----------------------
+
+    a.close()
+    print('Done')

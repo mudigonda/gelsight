@@ -24,6 +24,7 @@ import torch.nn.functional as F
 import torch.backends.cudnn as cudnn
 
 from RGB2video import RGB2video
+from gelsightrenderer import GelSightRender
 
 import gym
 # from gym.monitoring import VideoRecorder
@@ -53,145 +54,96 @@ class mypolicy():
         return [0.7, 0.3]
 
 
-def run_controller(env, horizon, policy):
+class simulator():
+    def __init__(self):
 
-    logs = DotMap()
-    logs.states = []
-    logs.actions = []
-    logs.rewards = []
-    logs.times = []
+        self.env = 'myparticle2D-v0'
+        self._env = []
+        self.policy = []
+        self._renderer = None
+        self.horizon = 100
 
-    observation = env.reset()
-    for t in range(horizon):
-        env.render()
-        state = observation
-        # print(state)
-        action = policy.act(state)
+    def run_controller(self, env, horizon, policy):
 
-        observation, reward, done, info = env.step(action)
+        logs = DotMap()
+        logs.states = []
+        logs.actions = []
+        logs.rewards = []
+        logs.times = []
 
-        # Log
-        # logs.times.append()
-        logs.actions.append(action)
-        logs.rewards.append(reward)
-        logs.states.append(observation)
+        observation = env.reset()
+        for t in range(horizon):
+            # env.render()
+            state = observation
+            # print(state)
+            action = policy.act(state)
 
-    # Cluster state
-    logs.actions = np.array(logs.actions)
-    logs.rewards = np.array(logs.rewards)
-    logs.states = np.array(logs.states)
-    return logs
+            observation, reward, done, info = env.step(action)
 
+            # Log
+            # logs.times.append()
+            logs.actions.append(action)
+            logs.rewards.append(reward)
+            logs.states.append(observation)
 
-def main(horizon=100, seed=0):
+        # Cluster state
+        logs.actions = np.array(logs.actions)
+        logs.rewards = np.array(logs.rewards)
+        logs.states = np.array(logs.states)
+        return logs
 
-    env_model = 'myparticle2D-v0'
-    env = gym.make(env_model)
-    env.seed(seed)
-    logging.info('Initializing env: %s' % env_model)
+    def run(self, horizon=100, seed=0):
 
-    logs = []
+        env = gym.make(self.env)
+        env.seed(seed)
+        logging.info('Initializing env: %s' % self.env)
 
-    # target = [0.5, 0.5, 0.5, 0.5, 0.5, 0.2, 0.5]
-    policy = mypolicy()
-    logs.append(run_controller(env, horizon=horizon, policy=policy))
+        self._renderer = GelSightRender()
 
-    plt.figure()
-    plt.plot(logs[0].states)
-    plt.legend()
-    plt.show()
+        logs = []
 
-    plt.figure()
-    plt.imshow(state2touch(logs[0].states[5]))
-    plt.show()
+        # target = [0.5, 0.5, 0.5, 0.5, 0.5, 0.2, 0.5]
+        policy = mypolicy()
+        logs.append(self.run_controller(env, horizon=horizon, policy=policy))
 
-    video = []
-    for i in range(logs[0].states.shape[0]):
-            video.append(state2touch(logs[0].states[i]))
-    RGB2video(nameFile='gelsight_simulator', data=np.array(video))
+        plt.figure()
+        plt.plot(logs[0].states)
+        plt.legend()
+        plt.show()
 
+        plt.figure()
+        plt.imshow(self.state2touch(logs[0].states[5]))
+        plt.show()
 
-def compute_bg_channel(dim, light_coordinates):
-    """
+        video = []
+        for i in range(logs[0].states.shape[0]):
+                video.append(self.state2touch(logs[0].states[i]))
+        RGB2video(nameFile='gelsight_simulator', data=np.array(video))
 
-    :param dim:
-    :param light_coordinates:
-    :return:
-    """
-    # Convert state to depth
-    xyz = [light_coordinates[0], light_coordinates[1]]
-    x = np.linspace(-1, 1, dim[0])
-    y = np.linspace(-1, 1, dim[1])
-    xv, yv = np.meshgrid(x, y)
-    cov = 0.5
-    luminance = 2
-    channel = 256 * luminance * multivariate_normal.pdf(np.stack((xv, yv), axis=2), mean=xyz, cov=cov)
-    return channel
+    def state2touch(self, state, resolution=[100, 100]):
+        """
+        :param state: 4D
+        :param resolution:
+        :return:
+        """
+        # Convert state to depth
+        xyz = [state[0], state[1]]  # move to xy coordinates [-1,+1]
+        x = np.linspace(-1, 1, resolution[0])
+        y = np.linspace(-1, 1, resolution[1])
+        xv, yv = np.meshgrid(x, y)
+        depthmap = multivariate_normal.pdf(np.stack((xv, yv), axis=2), mean=xyz, cov=0.15)  # Gaussian
+        depthmap = 230 * depthmap / depthmap.max()
+        depthmap = np.uint8(np.maximum(np.minimum(depthmap, 255), 0))
 
-def add_markers(depthmap, angle=0, xy_shift=0, size_marker=5, distance_marker=30):
-    """
+        # plt.figure()
+        # plt.imshow(depthmap)
+        # plt.show()
 
-    :param depthmap:
-    :param angle:
-    :param xy_shift:
-    :param size_marker:
-    :param distance_marker:
-    :return:
-    """
-    im = []
-    return im
+        rgb = self._renderer.render(depthmap=depthmap)
 
-
-def depthmap2touch(depthmap):
-    """
-
-    :param depthmap:
-    :return:
-    """
-    dim = depthmap.shape
-    im = np.zeros((dim[0], dim[1], 3))
-
-    light_pos = np.array([[0, -1 / 3],
-                          [1 / 3, 1 / 3],
-                          [-1 / 3, 1 / 3],
-                          ])
-    im[:, :, 0] += compute_bg_channel(dim=dim, light_coordinates=light_pos[0])  # R
-    im[:, :, 1] += compute_bg_channel(dim=dim, light_coordinates=light_pos[1])  # G
-    im[:, :, 2] += compute_bg_channel(dim=dim, light_coordinates=light_pos[2])  # B
-
-    # Add contact
-    im[:, :, 0] += depthmap
-    im[:, :, 0] += depthmap
-    im[:, :, 0] += depthmap
-
-    # Add markers
-    # TODO:
-
-    im = np.clip(im, 0, 255)
-    im = im.astype(np.uint8)
-
-    return im
-
-
-def state2touch(state, resolution=[256, 256]):
-    """
-    :param state: 4D
-    :param resolution:
-    :return:
-    """
-    # Convert state to depth
-    xyz = [state[0], state[2]]  # move to xy coordinates
-    x = np.linspace(-1, 1, resolution[0])
-    y = np.linspace(-1, 1, resolution[1])
-    xv, yv = np.meshgrid(x, y)
-    pressure = 5
-    depthmap = pressure * multivariate_normal.pdf(np.stack((xv, yv), axis=2), mean=xyz, cov=0.01)
-    depthmap = np.maximum(np.minimum(depthmap, 50), 10)
-
-    im = depthmap2touch(depthmap=depthmap)
-
-    return im
+        return rgb
 
 
 if __name__ == '__main__':
-    main()
+    a = simulator()
+    a.run()
