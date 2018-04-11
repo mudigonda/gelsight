@@ -23,8 +23,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.backends.cudnn as cudnn
 
-from RGB2video import RGB2video
-from gelsightrenderer import GelSightRender
+from src.RGB2video import RGB2video
+from src.gelsightrenderer import GelSightRender
 
 import gym
 # from gym.monitoring import VideoRecorder
@@ -122,7 +122,7 @@ class simulator():
                 video.append(self.state2touch(logs[0].states[i]))
         RGB2video(nameFile='gelsight_simulator', data=np.array(video))
 
-    def state2touch(self, state, resolution=[100, 100]):
+    def state2touch(self, state):
         """
         :param state: 4D
         :param resolution:
@@ -139,18 +139,24 @@ class simulator():
         depthmap = 230 * depthmap / depthmap.max()
 
         # Sphere
-
+        radius = 0.2
+        z = np.power(radius, 2) - np.power(xv-xyz[0], 2) - np.power(yv-xyz[1], 2)
+        depthmap = np.clip(z, 0, np.inf)
+        depthmap = 200*depthmap / depthmap.max()
         depthmap = np.uint8(np.maximum(np.minimum(depthmap, 255), 0))
+
+        rgb = self._renderer.render(depthmap=depthmap)
 
         # plt.figure()
         # plt.imshow(depthmap)
         # plt.show()
-
-        rgb = self._renderer.render(depthmap=depthmap)
+        # plt.figure()
+        # plt.imshow(rgb)
+        # plt.show()
 
         return rgb
 
 
 if __name__ == '__main__':
     a = simulator()
-    a.run()
+    a.run(horizon=60)
