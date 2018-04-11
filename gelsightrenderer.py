@@ -28,7 +28,7 @@ class GelSightRender:
         """
 
         """
-        self.resolution = [256, 256]  # Resolution window
+        self.resolutionOutput = parameters.get('resolutionInput', [256, 256])  # Resolution of the output RGB image
         self.resolutionInput = parameters.get('resolutionInput', [100, 100])  # Resolution of the input DepthMap
         self.depthmapClip = 0.5  # Maximum deformation of the gel
         self.gelBasePos = 1
@@ -39,20 +39,21 @@ class GelSightRender:
 
         # Position Camera
         self.camera = DotMap()
-        self.camera.pos = [2, 0, 0]
+        self.camera.pos = [4, 0, 0]
 
         # Position and intensity of the lights
         self.radius = 1.5
+        self.z_lights = 4
         self.intensity = 0.8
         self.lights = [DotMap(), DotMap(), DotMap()]
         self.lights[0].angle = 0
-        self.lights[0].direction = [3.0, self.radius*np.sin(self.lights[0].angle), self.radius*np.cos(self.lights[0].angle), self.intensity]
+        self.lights[0].direction = [self.z_lights, self.radius*np.sin(self.lights[0].angle), self.radius*np.cos(self.lights[0].angle), self.intensity]
         self.lights[0].rgba = [0.0, 0.0, 1.0, 1.0]
         self.lights[1].angle = 2*np.pi*1/3
-        self.lights[1].direction = [3.0, self.radius*np.sin(self.lights[1].angle), self.radius*np.cos(self.lights[1].angle), self.intensity]
+        self.lights[1].direction = [self.z_lights, self.radius*np.sin(self.lights[1].angle), self.radius*np.cos(self.lights[1].angle), self.intensity]
         self.lights[1].rgba = [0.0, 1.0, 0.0, 1.0]
         self.lights[2].angle = 2*np.pi*2/3
-        self.lights[2].direction = [3.0, self.radius*np.sin(self.lights[2].angle), self.radius*np.cos(self.lights[2].angle), self.intensity]
+        self.lights[2].direction = [self.z_lights, self.radius*np.sin(self.lights[2].angle), self.radius*np.cos(self.lights[2].angle), self.intensity]
         self.lights[2].rgba = [1.0, 0.0, 0.0, 1.0]
 
         # Intensity of ambient light
@@ -73,7 +74,7 @@ class GelSightRender:
         glutInit(sys.argv)  # Initialize the OpenGL pipeline
         glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH)  # Set OpenGL display mode
         # Set the Window size and position
-        glutInitWindowSize(self.resolution[0], self.resolution[1])
+        glutInitWindowSize(self.resolutionOutput[0], self.resolutionOutput[1])
         glutInitWindowPosition(50, 100)
         self._window = glutCreateWindow('GelSight Renderer')  # Create the window with given title
 
@@ -125,10 +126,10 @@ class GelSightRender:
         Extract the pixels from the window
         :return:
         """
-        buffer = (GLubyte * (3 * self.resolution[0] * self.resolution[1]))(0)
-        glReadPixels(0, 0, self.resolution[0], self.resolution[1], GL_RGB, GL_UNSIGNED_BYTE, buffer)
+        buffer = (GLubyte * (3 * self.resolutionOutput[0] * self.resolutionOutput[1]))(0)
+        glReadPixels(0, 0, self.resolutionOutput[0], self.resolutionOutput[1], GL_RGB, GL_UNSIGNED_BYTE, buffer)
         # Use PIL to convert raw RGB buffer and flip the right way up
-        image = Image.frombytes(mode="RGB", size=(self.resolution[0], self.resolution[1]), data=buffer)
+        image = Image.frombytes(mode="RGB", size=(self.resolutionOutput[0], self.resolutionOutput[1]), data=buffer)
         image = image.transpose(Image.FLIP_TOP_BOTTOM)
         return image
 
@@ -154,16 +155,18 @@ class GelSightRender:
         :param depthmap: array [x,y] in [0, 256]
         :return:
         """
-
+        depthmap = np.flipud(depthmap)  # Important. I guess that we are plotting upside-down?
         x = np.linspace(-2, 2, num=self.resolutionInput[0]+2)
         y = np.linspace(-2, 2, num=self.resolutionInput[1]+2)
         # TODO: Add markers to the surface
         # Make gel
         z = self.gelBasePos*np.ones((self.resolutionInput[0]+2, self.resolutionInput[1]+2))  # Rest position of the surface
         # Add curvature to the gel surface
-        xv, yv = np.meshgrid(x, y)
+        x_grid = np.linspace(-2, 2, num=self.resolutionInput[0])
+        y_grid = np.linspace(-2, 2, num=self.resolutionInput[1])
+        xv, yv = np.meshgrid(x_grid, y_grid)
         curvature = multivariate_normal.pdf(np.stack((xv, yv), axis=2), mean=[0, 0], cov=self.gelCurvatureCov)
-        z = z - self.gelCurvatureMax * curvature/curvature.max()
+        z[1:-1, 1:-1] = z[1:-1, 1:-1] - self.gelCurvatureMax * curvature/curvature.max()
         # Add normalized depthmap
         contact = self.depthmapClip * depthmap/256
         z[1:-1, 1:-1] = np.clip(z[1:-1, 1:-1] + contact, self.gelBasePos-self.gelCurvatureMax, self.gelBasePos)
@@ -219,7 +222,7 @@ class GelSightRender:
     #     else:
     #         glutIdleFunc(None)
 
-    def render(self, depthmap=None):
+    def render(self, depthmap):
         """
         Render a depthmap as a GelSight contact
         :param depthmap:
@@ -244,12 +247,12 @@ class GelSightRender:
 if __name__ == '__main__':
 
     p = DotMap()
-    p.resolution = [100, 100]
+    p.resolutionOutput = [100, 100]
     a = GelSightRender()  # initialize renderer
 
     # -----------------------
 
-    depthmap = np.zeros((p.resolution[0], p.resolution[1]))
+    depthmap = np.zeros((p.resolutionOutput[0], p.resolutionOutput[1]))
 
     plt.figure()
     plt.imshow(depthmap)
@@ -261,9 +264,9 @@ if __name__ == '__main__':
     # -----------------------
 
     # Generate test depthmap
-    xyz = [0.5, 0]  # move to xy coordinates [-1,+1]
-    x = np.linspace(-1, 1, p.resolution[0])
-    y = np.linspace(-1, 1, p.resolution[1])
+    xyz = [0.7, 0.3]  # move to xy coordinates [-1,+1]
+    x = np.linspace(-1, 1, p.resolutionOutput[0])
+    y = np.linspace(-1, 1, p.resolutionOutput[1])
     xv, yv = np.meshgrid(x, y)
     pressure = 12
     depthmap = multivariate_normal.pdf(np.stack((xv, yv), axis=2), mean=xyz, cov=0.3)  # Gaussian
@@ -272,7 +275,6 @@ if __name__ == '__main__':
 
     plt.figure()
     plt.imshow(depthmap)
-    plt.show()
 
     rgb = a.render(depthmap=depthmap)
     a.save2file(nameFile='test_01.png')
@@ -283,12 +285,11 @@ if __name__ == '__main__':
 
     # -----------------------
 
-    resolution = [100, 100]
-    depthmap = np.random.uniform(0, 100, (p.resolution[0], p.resolution[1]))
+    resolutionOutput = [100, 100]
+    depthmap = np.random.uniform(0, 100, (p.resolutionOutput[0], p.resolutionOutput[1]))
 
     plt.figure()
     plt.imshow(depthmap)
-    plt.show()
 
     rgb = a.render(depthmap=depthmap)
     a.save2file(nameFile='test_02.png')

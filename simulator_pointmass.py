@@ -62,6 +62,8 @@ class simulator():
         self.policy = []
         self._renderer = None
         self.horizon = 100
+        self.resolutionIn = [100, 100]
+        self.resolutionOut = [100, 100]
 
     def run_controller(self, env, horizon, policy):
 
@@ -128,11 +130,16 @@ class simulator():
         """
         # Convert state to depth
         xyz = [state[0], state[1]]  # move to xy coordinates [-1,+1]
-        x = np.linspace(-1, 1, resolution[0])
-        y = np.linspace(-1, 1, resolution[1])
+        x = np.linspace(-1, 1, self.resolutionIn[0])
+        y = np.linspace(-1, 1, self.resolutionIn[1])
         xv, yv = np.meshgrid(x, y)
+
+        # Gaussian
         depthmap = multivariate_normal.pdf(np.stack((xv, yv), axis=2), mean=xyz, cov=0.15)  # Gaussian
         depthmap = 230 * depthmap / depthmap.max()
+
+        # Sphere
+
         depthmap = np.uint8(np.maximum(np.minimum(depthmap, 255), 0))
 
         # plt.figure()
