@@ -5,6 +5,7 @@ mujoco-py<1.50.2,>=1.50.1
 gym
 pytorch
 moviepy
+numpy >= 1.14.3
 
 pyopengl
 pyopengl_accelerate
