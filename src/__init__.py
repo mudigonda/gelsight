@@ -12,4 +12,4 @@ from .gelsightrenderer import GelSightRender
 from .RGB2video import RGB2video
 from .savedata import save as SaveData
 from .savedata import load as LoadData
-from .train_model import train_network
+#from .train_model import train_network

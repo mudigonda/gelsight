@@ -73,7 +73,8 @@ class simulator(object):
         self._renderer = None
         self.horizon = 100
         self.resolutionIn = [100, 100]
-        self.resolutionOut = [126, 126]
+        #self.resolutionOut = [126, 126]
+        self.resolutionOut = self.resolutionIn
 
     def run_controller(self, horizon, policy):
 
@@ -85,13 +86,17 @@ class simulator(object):
         logs.obs = []
 
         observation = self._env.reset()
+        print("Env has been reset")
         for t in range(horizon):
             # env.render()
             state = self.state2touch(observation)
+            print("Go from state to touch")
             # print(state)
             action = policy.act(state)
+            print("Get an action based on policy")
 
             observation, reward, done, info = self._env.step(action)
+            print("Perform an action")
 
             # Log
             # logs.times.append()
@@ -114,12 +119,14 @@ class simulator(object):
         logger.info('Initializing env: %s' % self.env)
         p = DotMap()
         p.resolutionOutput = self.resolutionOut
+        print("src.GelSightRender with parameters p")
         self._renderer = src.GelSightRender(parameters=p)  # Init GelSight renderer
 
         log = []
         # target = [0.5, 0.5, 0.5, 0.5, 0.5, 0.2, 0.5]
         self.policy = policy
         log = self.run_controller(horizon=horizon, policy=policy)
+        print("controller has run")
 
         # plt.figure()
         # plt.plot(log.obs)
@@ -343,11 +350,13 @@ if __name__ == '__main__':
     # Collect random data
     if COLLECT_DATA:
         src.create_folder(folderData)
-        N_REPS = 50
-        HORIZON = 60
+        N_REPS = 1000
+        HORIZON = 50
         POLICY = randpolicy()
+        print("Starting simulator")
         a = simulator()
         for i in range(N_REPS):
+            print("Starting to run the simulator")
             log = a.run(horizon=HORIZON, policy=POLICY)
             nameFile = time.strftime("%Y-%m-%d_%H%M%S")
             src.SaveData(log, fileName='%s/%s.log' % (folderData, nameFile))

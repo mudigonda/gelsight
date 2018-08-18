@@ -76,7 +76,7 @@ class GelSightRender:
         Initialize rendering
         :return:
         """
-
+        print("Calling init")
         glutInit(sys.argv)  # Initialize the OpenGL pipeline
         glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH)  # Set OpenGL display mode
         # Set the Window size and position
@@ -134,9 +134,12 @@ class GelSightRender:
         """
         buffer = (GLubyte * (3 * self.resolutionOutput[0] * self.resolutionOutput[1]))(0)
         glReadPixels(0, 0, self.resolutionOutput[0], self.resolutionOutput[1], GL_RGB, GL_UNSIGNED_BYTE, buffer)
+        print("glReadPixels")
         # Use PIL to convert raw RGB buffer and flip the right way up
         image = Image.frombytes(mode="RGB", size=(self.resolutionOutput[0], self.resolutionOutput[1]), data=buffer)
+        print("PIL frombytes")
         image = image.transpose(Image.FLIP_TOP_BOTTOM)
+        print("PIL transpose")
         return image
 
     def extractRGB(self):
@@ -194,11 +197,17 @@ class GelSightRender:
             numpy array with the RGB image of gel having size [self.resolutionOutput[0], self.resolutionOutput[1], 3]
         """
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+        print("glClear")
         glColor3f(self.surface_color[0], self.surface_color[1], self.surface_color[2])  # Set color Gel
+        print("glColor")
         glShadeModel(self.surface)  # Set shade model
+        print("glShadeModel")
         self.draw(depthmap)
+        print("depthMap")
         glutSwapBuffers()
+        print("SwapBuffers")
         RGB = self.extractRGB()
+        print("Extract RGB")
         return RGB
 
     def close(self):
@@ -223,6 +232,7 @@ if __name__ == '__main__':
     depthmap = np.zeros((p.resolutionOutput[0], p.resolutionOutput[1]))
 
     plt.figure()
+    plt.ion()
     plt.imshow(depthmap)
     plt.show()
 
