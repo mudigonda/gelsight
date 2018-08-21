@@ -34,10 +34,13 @@ def create_network(x,layers):
         B = init_weights("B" + str(a), b[1])
         cur = tf.nn.elu(tf.matmul(cur, W) +B)
     
+    '''
     W = init_weights("W_act", [b[1],ACTION_DIMS])
     B = init_weights("B_act", [b[1],ACTION_DIMS])
-    prediction = tf.matmul(cur,W) + B 
+    prediction = tf.matmul(cur,W) + B  
     return prediction
+    '''
+    return cur
 
 
 class GelSight():
@@ -62,7 +65,7 @@ class GelSight():
             x = slim.fully_connected(x, FEAT_SIZE, scope="concat_fc")
 
         #Create pred network
-        pred_actions = create_network(x,[[100,200],[200,100]])
+        pred_actions = create_network(x,[[100,200],[200,100],[100,ACTION_DIMS]])
         #Loss
         pred_loss = tf.nn.l2_loss(pred_actions -self.gtAction_PH)
         tf.add_to_collection('pred_loss',pred_loss)
@@ -110,9 +113,15 @@ class GelSight():
 
     def train(self,niters=1):
         print("Wil train for 1 steps")
-        feed_data = self.get_batch()
-        print("Feed data procured")
-        outputs = self.sess.run(self.optimize_action_no_alex,feed_dict=feed_data)
+        ops_to_run = []
+        ops_to_run.append(self.optimize_action_no_alex)
+        ops_to_run.append(self.train_summaries) 
+        for ii in range(10):
+          feed_data = self.get_batch()
+          print("Feed data procured")
+          outputs = self.sess.run(ops_to_run,feed_dict=feed_data)
+        print("One training epoch done")
+        import IPython; IPython.embed()
         return
     
 
