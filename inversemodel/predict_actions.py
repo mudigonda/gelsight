@@ -67,7 +67,7 @@ class GelSight():
         #Create pred network
         pred_actions = create_network(x,[[100,200],[200,100],[100,ACTION_DIMS]])
         #Loss
-        pred_loss = tf.nn.l2_loss(pred_actions -self.gtAction_PH)
+        pred_loss = tf.nn.l2_loss(pred_actions -self.gtAction_PH)/BATCH_SIZE
         tf.add_to_collection('pred_loss',pred_loss)
         inv_vars_no_alex = [v for v in tf.trainable_variables() if 'alexnet' not in v.name]
         print('Action prediction tensors consist {0} out of {1}'.format(len(inv_vars_no_alex), len(tf.trainable_variables())))
@@ -82,6 +82,10 @@ class GelSight():
 
         self.optimize_action_no_alex = action_optimizer.apply_gradients(action_grads)
         self.optimize_action_alex = action_optimizer.apply_gradients(action_grads_full)
+
+        #Eval
+        self.pred_actions = pred_actions
+        self.pred_loss = pred_loss
 
         #Logging
         tf.summary.scalar('model/action_loss',pred_loss,collections=['train'])
@@ -116,22 +120,28 @@ class GelSight():
         ops_to_run = []
         ops_to_run.append(self.optimize_action_no_alex)
         ops_to_run.append(self.train_summaries) 
-        for ii in range(10):
+        ops_to_run.append(self.pred_actions) 
+        ops_to_run.append(self.pred_loss) 
+        for ii in range(niters):
           feed_data = self.get_batch()
           print("Feed data procured")
           outputs = self.sess.run(ops_to_run,feed_dict=feed_data)
-        print("One training epoch done")
-        import IPython; IPython.embed()
+          print("L2 Norm of loss is {} \n".format(np.sum((outputs[-2]-feed_data[self.gtAction_PH])**2)/(2*BATCH_SIZE)))
+          print("L2 Norm of loss is {} \n".format(outputs[-1]))
+          print("One training epoch done")
+          self.writer.add_summary(outputs[-3])
+          self.writer.flush()
         return
     
 
 if __name__ == "__main__":
     parser = AP.ArgumentParser()
     parser.add_argument("--input",default=None,type=str,help="File name with data")
+    parser.add_argument("--niters",default=1,type=int,help="Number of training iterations")
     parsed = parser.parse_args()
 
     if parsed.input is not None:
        data = np.load(parsed.input)
 
     GS = GelSight("Predictions")
-    GS.train()
+    GS.train(parsed.niters)
