@@ -13,6 +13,8 @@
 
 import sys
 import os
+import matplotlib
+matplotlib.use('Agg')
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
 this_path = os.path.dirname(os.path.abspath(__file__))
 from numpy import *
