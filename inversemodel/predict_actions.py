@@ -14,7 +14,7 @@ CONFIG.gpu_options.allow_growth = True
 
 BATCH_SIZE = 50
 GRAD_CLIP_NORM = 40
-IM_SIZE = 100 
+IM_SIZE = 200 
 ENCODING_SIZE = 100
 FEAT_SIZE = 100
 CHANNELS = 3
@@ -43,6 +43,8 @@ def create_network(x,layers):
     '''
     return cur
 
+def leaky_relu(x, alpha):
+    return tf.maximum(x, alpha * x)
 
 class GelSight():
     def __init__(self,name,DEBUG=False,unfreeze_time=30000, autoencode=False,
@@ -110,10 +112,12 @@ class GelSight():
         if self.fwd_consist:
             print("Forward Consistency Enabled")
             with tf.variable_scope('fwd_consist'):
+                '''
                 if softmaxBackprop:
                     location_pred = tf.nn.softmax(location_pred)
                     theta_pred = tf.nn.softmax(theta_pred)
                     length_pred = tf.nn.softmax(length_pred)
+                '''
 
                 # baseline regularization => gradients flow only to alexnet, not action pred
                 if baseline_reg:
@@ -123,14 +127,19 @@ class GelSight():
                     print("Gradient flowing through action prediction")
                     # fwd_consist => gradients flow through action prediction
                     latent_conv5_image = tf.stop_gradient(latent_conv5_image)
+                    '''
                     action_embed = tf.cond(self.gtAction_ph,
                         lambda: tf.concat(1, [self.location_ph, self.theta_ph, self.length_ph]),
                         lambda: tf.concat(1, [location_pred, theta_pred, length_pred]))
+                    '''
+                    action_embed = pred_actions
 
                 action_embed = slim.fully_connected(action_embed, 363)
                 action_embed = tf.reshape(action_embed, [-1, 11, 11, 3])
+                #action_embed = slim.fully_connected(action_embed, 125)
+                #action_embed = tf.reshape(action_embed, [-1, 5, 5, 3])
                 # concat along depth
-                fwd_features = tf.concat(3, [latent_conv5_image, action_embed])
+                fwd_features = tf.concat([latent_conv5_image, action_embed],axis=3)
                 # deconvolution
                 batch_size = tf.shape(fwd_features)[0]
 
@@ -145,12 +154,13 @@ class GelSight():
                 deconv3 = tf.nn.tanh(deconv3)
                 # loss from upsampled deconvolution and goal image
                 upsampled_deconv_img = tf.image.resize_images(deconv3, [200, 200])
+                #upsampled_deconv_img = tf.image.resize_images(deconv3, [100, 100])
                 tf.add_to_collection('upsampled_deconv_img', upsampled_deconv_img)
 
                 # image inputs are -255 to 255 ??? for some reason
                 # whether to autoencode or not
 
-                normalized_goal_img = tf.cond(self.autoencode_ph, lambda: self.image_ph / 255.0, lambda: self.goal_image_ph / 255.0)
+                normalized_goal_img = tf.cond(self.autoencode_PH, lambda: self.image_PH / 255.0, lambda: self.goal_image_PH / 255.0)
 
                 # just to visualize
                 deconv_log_img = (upsampled_deconv_img + 1.0) * 127.5
@@ -171,13 +181,14 @@ class GelSight():
                 fwd_consist_grads_full = zip(fwd_consist_grads_full, tf.trainable_variables())
 
                 self.optimize_fwd_freeze = deconv_optimizer.apply_gradients(fwd_consist_grads)
-
-                with tf.control_dependencies([fwd_consist_grads_full[0][0][0], action_grads_full[0][0][0]]):
-                    self.optimize_fwd_full = deconv_optimizer.apply_gradients(fwd_consist_grads_full)
-                    self.optimize_action_full = action_optimizer.apply_gradients(action_grads_full)
+                list_fwd_consist_grads_full = list(fwd_consist_grads_full)
+                list_action_grads_full = list(action_grads_full)
+                with tf.control_dependencies([list_fwd_consist_grads_full[0][0][0], list_action_grads_full[0][0][0]]):
+                    self.optimize_fwd_full = deconv_optimizer.apply_gradients(list_fwd_consist_grads_full)
+                    self.optimize_action_full = action_optimizer.apply_gradients(list_action_grads_full)
 
         self.optimize_action_no_alex = action_optimizer.apply_gradients(action_grads)
-        self.optimize_action_alex = action_optimizer.apply_gradients(action_grads_full)
+        self.optimize_action_alex = action_optimizer.apply_gradients(list_action_grads_full)
 
         #Logging
         tf.summary.scalar('model/action_loss',pred_loss,collections=['train'])
@@ -285,7 +296,7 @@ class GelSight():
 
             # validate on 1000 images
             # split into batches of 100 because of memory issues
-            if ii % 1000 == 0:
+            if ii % 100 == 0:
                 self.saver.save(self.sess, self.model_directory + 'inverse', global_step=ii)
                 print('Saved at timestep {0}'.format(ii))
 
@@ -325,10 +336,10 @@ if __name__ == "__main__":
     parser = AP.ArgumentParser()
     parser.add_argument("--input",default=None,type=str,help="File name with data")
     parser.add_argument("--niters",default=1,type=int,help="Number of training iterations")
+    parser.add_argument("--fwd",default=False,type=bool,help="Boolean flag that trains for forward consistency")
+    parser.add_argument("--debug",default=False,type=bool,help="Boolean flag that sets Debug")
     parsed = parser.parse_args()
 
-    if parsed.input is not None:
-       data = np.load(parsed.input)
 
-    GS = GelSight("Predictions")
+    GS = GelSight("Predictions",fwd_consist = parsed.fwd,DEBUG=parsed.debug)
     GS.train(parsed.niters)

@@ -187,10 +187,11 @@ def network(x, trainable=False, reuse=None, num_outputs=100):
         with slim.arg_scope([slim.conv2d],
                               weights_initializer=trunc_normal(0.005),
                               biases_initializer=tf.constant_initializer(0.1)):
-            #net = slim.conv2d(maxpool5, num_outputs, [5, 5], padding='VALID', scope='fc6', reuse=reuse)
-            # net = tf.nn.relu(net)
-            net = tf.nn.relu(maxpool5)
-            net = tf.reshape(net, [-1, int(prod(maxpool5.get_shape()[1:]))])
+            net = slim.conv2d(maxpool5, num_outputs, [5, 5], padding='VALID', scope='fc6', reuse=reuse)
+            #net = tf.nn.relu(net)
+            #net = tf.nn.relu(maxpool5)
+            #net = tf.reshape(net, [-1, int(prod(maxpool5.get_shape()[1:]))])
+            net = tf.reshape(net, [-1, num_outputs])
 
     filters = [conv1W, ]
     return net, conv5#, filters
