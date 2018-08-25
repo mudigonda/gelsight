@@ -7,6 +7,7 @@ slim = tf.contrib.slim
 import argparse as AP
 import time
 import alexnet_geurzhoy
+from skimage.transform import resize
 
 CONFIG = tf.ConfigProto()
 CONFIG.gpu_options.allow_growth = True
@@ -62,8 +63,10 @@ class GelSight():
         self.start = 0
         print(self.name)
         if DEBUG:
+          print("Debug mode")
           self.get_batch = self.generate_toy_data
         else:
+          print("Real Data")
           self.path = '/home/ubuntu/Data/gelsight/'
           self.normalize = True 
           self.load_data()
@@ -256,11 +259,24 @@ class GelSight():
           idx = np.random.randint(0,TrainSplit,BATCH_SIZE)
         else:
           idx = np.random.randint(TrainSplit,self.images.shape[0],self.images.shape[0]-TrainSplit)
+        #resizing to address the 200 200 issue
+        tmp_im = np.zeros((len(idx),IM_SIZE,IM_SIZE,CHANNELS))
+        tmp_goal_im = np.zeros((len(idx),IM_SIZE,IM_SIZE,CHANNELS))
+        for ii in range(len(idx)):
+            tmp_im[ii,...] = resize(self.images[idx[ii],...],[IM_SIZE,IM_SIZE])  
+            tmp_goal_im[ii,...] = resize(self.goal_images[idx[ii],...], [IM_SIZE, IM_SIZE])
+        feed_dict = {
+        self.goal_image_PH:tmp_goal_im,
+        self.image_PH:tmp_im,
+        self.gtAction_PH:self.actions[idx,...],
+        self.autoencode_PH:False}
+        '''
         feed_dict = {
         self.goal_image_PH:self.goal_images[idx,...],
         self.image_PH:self.images[idx,...],
         self.gtAction_PH:self.actions[idx,...],
         self.autoencode_PH:False}
+        '''
         return feed_dict 
 
     def train(self,niters=1):
@@ -290,6 +306,7 @@ class GelSight():
             ops_to_run.append(self.train_summaries)
             op_results = self.sess.run(ops_to_run, feed_dict=feed_dict)
             train_summaries = op_results[-1]
+            print("L2 Norm of Train loss is {} \n".format(op_results[0]))
 
             if ii % 100 == 0:
                 self.writer.add_summary(train_summaries, ii)
@@ -336,10 +353,16 @@ if __name__ == "__main__":
     parser = AP.ArgumentParser()
     parser.add_argument("--input",default=None,type=str,help="File name with data")
     parser.add_argument("--niters",default=1,type=int,help="Number of training iterations")
-    parser.add_argument("--fwd",default=False,type=bool,help="Boolean flag that trains for forward consistency")
-    parser.add_argument("--debug",default=False,type=bool,help="Boolean flag that sets Debug")
+    parser.add_argument("--fwd",default="False",type=str,help="Boolean flag that trains for forward consistency")
+    parser.add_argument("--debug",default="False",type=str,help="Boolean flag that sets Debug")
     parsed = parser.parse_args()
-
-
+    if parsed.fwd == "False":
+       parsed.fwd = False
+    else:
+       parsed.fwd = True
+    if parsed.debug == "False":
+       parsed.debug = False
+    else:
+       parsed.debug = True
     GS = GelSight("Predictions",fwd_consist = parsed.fwd,DEBUG=parsed.debug)
     GS.train(parsed.niters)
