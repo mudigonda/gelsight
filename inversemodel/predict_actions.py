@@ -13,11 +13,12 @@ CONFIG = tf.ConfigProto()
 CONFIG.gpu_options.allow_growth = True
 
 
-BATCH_SIZE = 50
+BATCH_SIZE = 200
 GRAD_CLIP_NORM = 40
 IM_SIZE = 200 
-ENCODING_SIZE = 100
-FEAT_SIZE = 100
+IM_SIZE0 = 100 
+ENCODING_SIZE = 50
+FEAT_SIZE = 50
 CHANNELS = 3
 ACTION_DIMS = 2
 TrainSplit = 47000
@@ -50,11 +51,12 @@ def leaky_relu(x, alpha):
 class GelSight():
     def __init__(self,name,DEBUG=False,unfreeze_time=30000, autoencode=False,
         action_lr=1e-4, deconv_lr=1e-3, fwd_consist=False, baseline_reg=False, softmaxBackprop=True,
-        gtAction=False):
+        gtAction=False,discreteAction=False):
         print("GelSight Class")
         self.unfreeze_time = unfreeze_time
         self.autoencode = autoencode
         self.gtAction = gtAction
+        self.discreteAction = discreteAction
         self.name = '{0}_{1}_{2}_{3}_{4}_{5}K_{6}_{7}'.format(name, 'fwdconsist' + str(fwd_consist), 'baselinereg' + str(baseline_reg),*
             'deconv_lr' + str(deconv_lr), 'autoencode' + str(autoencode),
             'unfreeze' + str(int(unfreeze_time/1000.)), 'softmax' + str(softmaxBackprop),
@@ -70,7 +72,7 @@ class GelSight():
           self.path = '/home/ubuntu/Data/gelsight/'
           self.normalize = True 
           self.load_data()
-          #self.order_data()
+          self.order_data()
           self.get_batch = self.generate_gelsight_data
         self.image_PH = tf.placeholder(tf.float32, [None, IM_SIZE,IM_SIZE,CHANNELS], name = 'image_PH')
         self.goal_image_PH = tf.placeholder(tf.float32, [None,IM_SIZE,IM_SIZE,CHANNELS], name = 'goal_image_PH')
@@ -90,9 +92,13 @@ class GelSight():
             x = slim.fully_connected(x, FEAT_SIZE, scope="concat_fc")
 
         #Create pred network
-        pred_actions = create_network(x,[[100,200],[200,100],[100,ACTION_DIMS]])
+        pred_actions = create_network(x,[[FEAT_SIZE,200],[200,100],[100,ACTION_DIMS]])
         #Loss
-        pred_loss = tf.nn.l2_loss(pred_actions -self.gtAction_PH)/(2*BATCH_SIZE)
+        if self.discreteAction:
+          pred_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=pred_actions,labels=self.gtAction_PH))
+        else:
+          #pred_loss = tf.nn.l2_loss(pred_actions -self.gtAction_PH)/(2*BATCH_SIZE)
+          pred_loss = tf.reduce_mean(tf.reduce_sum((pred_actions -self.gtAction_PH)**2,axis=1))
         tf.add_to_collection('pred_loss',pred_loss)
         inv_vars_no_alex = [v for v in tf.trainable_variables() if 'alexnet' not in v.name]
         print('Action prediction tensors consist {0} out of {1}'.format(len(inv_vars_no_alex), len(tf.trainable_variables())))
@@ -201,7 +207,12 @@ class GelSight():
             tf.summary.scalar('model/fwd_consist_loss', fwd_consist_loss, collections=['train'])
             tf.summary.image('upsampled_deconv_image', deconv_log_img, max_outputs=5, collections=['train'])
 
-        
+        for var in tf.trainable_variables():
+            tf.summary.histogram(var.name,var)
+        for grad,var in list_action_grads_full:
+            tf.summary.histogram(var.name + '/gradient_action', grad)
+        for grad,var in list_fwd_consist_grads_full:
+            tf.summary.histogram(var.name + '/gradient_fwd_consist', grad)
         self.train_summaries = tf.summary.merge_all('train')
         self.writer = tf.summary.FileWriter('./results/{0}/logs/{1}'.format(self.name, time.time()))
 
@@ -236,14 +247,17 @@ class GelSight():
         if self.normalize:
           print("Std Deviation")
           self.goal_images = (self.goal_images - self.mean)/self.std
-        self.actions = np.load(self.path + 'input_actions.npy')
+        if self.discreteAction:
+          self.actions = np.load(self.path + 'discrete_actions.npy')
+        else:
+          self.actions = np.load(self.path + 'input_actions.npy')
         return
 
     def order_data(self,lag=1):
         #init
         episode_len = 50-lag
-        inputs = np.zeros((980*episode_len,IM_SIZE,IM_SIZE,CHANNELS))
-        outputs = np.zeros((980*episode_len,IM_SIZE,IM_SIZE,CHANNELS))
+        inputs = np.zeros((980*episode_len,IM_SIZE0,IM_SIZE0,CHANNELS))
+        outputs = np.zeros((980*episode_len,IM_SIZE0,IM_SIZE0,CHANNELS))
         #Loop from 0 to IM_SIZE0 (number of episodes). 980 because the job died?
         for ii in range(980):
         #For each input up to end-lag, take the output by shifting by lag
@@ -347,22 +361,27 @@ class GelSight():
           self.writer.flush()
         '''
         return
-    
+
+def str2bool(varName):
+    if varName == "False":
+        return False
+    else:    
+        return True
+
 
 if __name__ == "__main__":
     parser = AP.ArgumentParser()
     parser.add_argument("--input",default=None,type=str,help="File name with data")
     parser.add_argument("--niters",default=1,type=int,help="Number of training iterations")
     parser.add_argument("--fwd",default="False",type=str,help="Boolean flag that trains for forward consistency")
+    parser.add_argument("--name",default="Predictions",type=str,help="Expt Name")
     parser.add_argument("--debug",default="False",type=str,help="Boolean flag that sets Debug")
+    parser.add_argument("--discrete",default="False",type=str,help="Boolean flag that sets Discrete Actions")
     parsed = parser.parse_args()
-    if parsed.fwd == "False":
-       parsed.fwd = False
-    else:
-       parsed.fwd = True
-    if parsed.debug == "False":
-       parsed.debug = False
-    else:
-       parsed.debug = True
-    GS = GelSight("Predictions",fwd_consist = parsed.fwd,DEBUG=parsed.debug)
+    parsed.fwd = str2bool(parsed.fwd)
+    parsed.debug = str2bool(parsed.debug)
+    parsed.discrete = str2bool(parsed.discrete)
+    print("Job Parameters are")
+    print(parsed)
+    GS = GelSight(name=parsed.name,fwd_consist = parsed.fwd,DEBUG=parsed.debug,discreteAction=parsed.discrete)
     GS.train(parsed.niters)
