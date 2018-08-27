@@ -13,7 +13,7 @@ CONFIG = tf.ConfigProto()
 CONFIG.gpu_options.allow_growth = True
 
 
-BATCH_SIZE = 200
+BATCH_SIZE = 50
 GRAD_CLIP_NORM = 40
 IM_SIZE = 200 
 IM_SIZE0 = 100 
@@ -208,11 +208,11 @@ class GelSight():
             tf.summary.image('upsampled_deconv_image', deconv_log_img, max_outputs=5, collections=['train'])
 
         for var in tf.trainable_variables():
-            tf.summary.histogram(var.name,var)
+            tf.summary.histogram(var.name,var,collections=['train'])
         for grad,var in list_action_grads_full:
-            tf.summary.histogram(var.name + '/gradient_action', grad)
+            tf.summary.histogram(var.name + '/gradient_action', grad,collections=['train'])
         for grad,var in list_fwd_consist_grads_full:
-            tf.summary.histogram(var.name + '/gradient_fwd_consist', grad)
+            tf.summary.histogram(var.name + '/gradient_fwd_consist', grad,collections=['train'])
         self.train_summaries = tf.summary.merge_all('train')
         self.writer = tf.summary.FileWriter('./results/{0}/logs/{1}'.format(self.name, time.time()))
 
@@ -339,27 +339,7 @@ class GelSight():
                 self.writer.add_summary(summaries, ii)
 
             self.writer.flush()
-
-        '''
-        ops_to_run = []
-        ops_to_run.append(self.optimize_action_no_alex)
-        ops_to_run.append(self.train_summaries) 
-        ops_to_run.append(self.pred_actions) 
-        ops_to_run.append(self.pred_loss) 
-        for ii in range(niters):
-          feed_data = self.get_batch(isTraining=True)
-          print("Feed data procured")
-          outputs = self.sess.run(ops_to_run,feed_dict=feed_data)
-          if ii%10 == 0:
-            print("L2 Norm of loss is {} \n".format(outputs[-1]))
-          if ii%100 == 0:
-            feed_data = self.get_batch(isTraining=False)
-            import IPython; IPython.embed()
-            pred_actions, pred_loss = self.sess.run([self.pred_actions,self.pred_loss],feed_dict=feed_data)
-            print("L2 Norm of Validation loss is {} \n".format(pred_loss))
-          self.writer.add_summary(outputs[-3])
-          self.writer.flush()
-        '''
+        import IPython; IPython.embed()
         return
 
 def str2bool(varName):
