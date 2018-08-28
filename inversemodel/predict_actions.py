@@ -22,6 +22,7 @@ FEAT_SIZE = 50
 CHANNELS = 3
 ACTION_DIMS = 2
 TrainSplit = 47000
+BINS = 10
 
 def init_weights(name, shape):
     return tf.get_variable(name, shape=shape, initializer=tf.random_normal_initializer(0, 0.01))
@@ -76,7 +77,11 @@ class GelSight():
           self.get_batch = self.generate_gelsight_data
         self.image_PH = tf.placeholder(tf.float32, [None, IM_SIZE,IM_SIZE,CHANNELS], name = 'image_PH')
         self.goal_image_PH = tf.placeholder(tf.float32, [None,IM_SIZE,IM_SIZE,CHANNELS], name = 'goal_image_PH')
-        self.gtAction_PH = tf.placeholder(tf.float32, [None,ACTION_DIMS])
+        if self.discreteAction:
+            self.gtTheta_PH = tf.placeholder(tf.int32,[None,BINS])
+            self.gtRho_PH = tf.placeholder(tf.int32,[None,BINS])
+        else:
+            self.gtAction_PH = tf.placeholder(tf.float32, [None,ACTION_DIMS])
         self.autoencode_PH = tf.placeholder(tf.bool)
 
         #get latent embeddings
@@ -92,10 +97,15 @@ class GelSight():
             x = slim.fully_connected(x, FEAT_SIZE, scope="concat_fc")
 
         #Create pred network
-        pred_actions = create_network(x,[[FEAT_SIZE,200],[200,100],[100,ACTION_DIMS]])
+        if self.discreteAction:
+          pred_actions = create_network(x,[[FEAT_SIZE,200],[200,100],[100,BINS*2]]) #For theta and rho we create Bin sized vector
+        else:
+          pred_actions = create_network(x,[[FEAT_SIZE,200],[200,100],[100,ACTION_DIMS]])
         #Loss
         if self.discreteAction:
-          pred_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=pred_actions,labels=self.gtAction_PH))
+          rho_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=pred_actions[:,:BINS],labels=self.gtRho_PH))
+          theta_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=pred_actions[:,BINS:],labels=self.gtTheta_PH))
+          pred_loss = rho_loss + theta_loss	
         else:
           #pred_loss = tf.nn.l2_loss(pred_actions -self.gtAction_PH)/(2*BATCH_SIZE)
           pred_loss = tf.reduce_mean(tf.reduce_sum((pred_actions -self.gtAction_PH)**2,axis=1))
@@ -228,12 +238,26 @@ class GelSight():
     def generate_toy_data(self,isTraining=True):
         images = np.random.randn(BATCH_SIZE,IM_SIZE,IM_SIZE,CHANNELS)
         goal_images = np.random.randn(BATCH_SIZE,IM_SIZE,IM_SIZE,CHANNELS)
-        actions = np.random.randn(BATCH_SIZE,ACTION_DIMS)
-        feed_dict = {
-        self.goal_image_PH:goal_images,
-        self.image_PH:images,
-        self.gtAction_PH:actions,
-        self.autoencode_PH:False}
+        if self.discreteAction:
+          from sklearn.preprocessing import MultiLabelBinarizer
+          mlb = MultiLabelBinarizer(classes = np.arange(BINS))
+          theta = np.random.randint(0,BINS,(BATCH_SIZE,1))
+          rho = np.random.randint(0,BINS,(BATCH_SIZE,1))
+          theta_one_hot = mlb.fit_transform(theta)
+          rho_one_hot = mlb.fit_transform(rho)
+          feed_dict = {
+          self.goal_image_PH:goal_images,
+          self.image_PH:images,
+          self.gtTheta_PH:theta_one_hot,
+          self.gtRho_PH:rho_one_hot,
+          self.autoencode_PH:False}
+        else:
+          actions = np.random.randn(BATCH_SIZE,ACTION_DIMS)
+          feed_dict = {
+          self.goal_image_PH:goal_images,
+          self.image_PH:images,
+          self.gtAction_PH:actions,
+          self.autoencode_PH:False}
         return feed_dict 
 
     def load_data(self):
@@ -248,7 +272,7 @@ class GelSight():
           print("Std Deviation")
           self.goal_images = (self.goal_images - self.mean)/self.std
         if self.discreteAction:
-          self.actions = np.load(self.path + 'discrete_actions.npy')
+          self.actions = np.load(self.path + 'rho_theta_one_hot.npy')
         else:
           self.actions = np.load(self.path + 'input_actions.npy')
         return
@@ -279,18 +303,19 @@ class GelSight():
         for ii in range(len(idx)):
             tmp_im[ii,...] = resize(self.images[idx[ii],...],[IM_SIZE,IM_SIZE])  
             tmp_goal_im[ii,...] = resize(self.goal_images[idx[ii],...], [IM_SIZE, IM_SIZE])
-        feed_dict = {
-        self.goal_image_PH:tmp_goal_im,
-        self.image_PH:tmp_im,
-        self.gtAction_PH:self.actions[idx,...],
-        self.autoencode_PH:False}
-        '''
-        feed_dict = {
-        self.goal_image_PH:self.goal_images[idx,...],
-        self.image_PH:self.images[idx,...],
-        self.gtAction_PH:self.actions[idx,...],
-        self.autoencode_PH:False}
-        '''
+        if self.discreteAction:
+          feed_dict = {
+          self.goal_image_PH:tmp_goal_im,
+          self.image_PH:tmp_im,
+          self.gtTheta_PH:self.actions[1][idx],#theta is the second array
+          self.gtRho_PH:self.actions[0][idx],#rho is the first array
+          self.autoencode_PH:False}
+        else:
+          feed_dict = {
+          self.goal_image_PH:tmp_goal_im,
+          self.image_PH:tmp_im,
+          self.gtAction_PH:self.actions[idx,...],
+          self.autoencode_PH:False}
         return feed_dict 
 
     def train(self,niters=1):
