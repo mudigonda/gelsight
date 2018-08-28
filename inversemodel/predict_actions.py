@@ -95,7 +95,7 @@ class GelSight():
         pred_actions = create_network(x,[[FEAT_SIZE,200],[200,100],[100,ACTION_DIMS]])
         #Loss
         if self.discreteAction:
-          pred_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=pred_actions,labels=self.gtAction_PH))
+          pred_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=pred_actions,labels=self.gtAction_PH))
         else:
           #pred_loss = tf.nn.l2_loss(pred_actions -self.gtAction_PH)/(2*BATCH_SIZE)
           pred_loss = tf.reduce_mean(tf.reduce_sum((pred_actions -self.gtAction_PH)**2,axis=1))
