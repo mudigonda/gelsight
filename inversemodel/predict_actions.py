@@ -6,7 +6,7 @@ import tensorflow as tf
 slim = tf.contrib.slim
 import argparse as AP
 import time
-import alexnet_geurzhoy
+import alexnet_randinit
 from skimage.transform import resize
 
 CONFIG = tf.ConfigProto()
@@ -17,8 +17,8 @@ BATCH_SIZE = 50
 GRAD_CLIP_NORM = 40
 IM_SIZE = 200 
 IM_SIZE0 = 100 
-ENCODING_SIZE = 50
-FEAT_SIZE = 50
+ENCODING_SIZE = 100
+FEAT_SIZE = 400
 CHANNELS = 3
 ACTION_DIMS = 2
 TrainSplit = 47000
@@ -72,7 +72,9 @@ class GelSight():
           print("Real Data")
           self.path = '/home/ubuntu/Data/gelsight/'
           self.normalize = True 
+          print("Data loading")
           self.load_data()
+          print("Ordering Data")
           self.order_data()
           self.get_batch = self.generate_gelsight_data
         self.image_PH = tf.placeholder(tf.float32, [None, IM_SIZE,IM_SIZE,CHANNELS], name = 'image_PH')
@@ -85,11 +87,12 @@ class GelSight():
         self.autoencode_PH = tf.placeholder(tf.bool)
 
         #get latent embeddings
-        latent_image, latent_conv5_image = alexnet_geurzhoy.network(self.image_PH, trainable=True, num_outputs=ENCODING_SIZE)
-        latent_goal_image, latent_conv5_goal_image = alexnet_geurzhoy.network(self.goal_image_PH, trainable=True, num_outputs=ENCODING_SIZE, reuse=True)
+        latent_image, latent_conv5_image = alexnet_randinit.network(self.image_PH, trainable=True, num_outputs=ENCODING_SIZE)
+        latent_goal_image, latent_conv5_goal_image = alexnet_randinit.network(self.goal_image_PH, trainable=True, num_outputs=ENCODING_SIZE, reuse=True)
 
+        #latent_image = alexnet_randinit.network(self.image_PH, trainable=True, num_outputs=ENCODING_SIZE)
+        #latent_goal_image = alexnet_randinit.network(self.goal_image_PH, trainable=True, num_outputs=ENCODING_SIZE, reuse=True)
         # concatenate the latent representations and share information
-        #features = tf.concat(1, [latent_image, latent_goal_image])
         features = tf.concat([latent_image, latent_goal_image],axis=1)
 
         with tf.variable_scope("concat_fc"):
@@ -207,7 +210,10 @@ class GelSight():
                     self.optimize_action_full = action_optimizer.apply_gradients(list_action_grads_full)
 
         self.optimize_action_no_alex = action_optimizer.apply_gradients(action_grads)
-        self.optimize_action_alex = action_optimizer.apply_gradients(list_action_grads_full)
+        if self.fwd_consist:
+          self.optimize_action_alex = action_optimizer.apply_gradients(list_action_grads_full)
+        else:
+          self.optimize_action_alex = action_optimizer.apply_gradients(action_grads_full)
 
         #Logging
         tf.summary.scalar('model/action_loss',pred_loss,collections=['train'])
@@ -219,10 +225,15 @@ class GelSight():
 
         for var in tf.trainable_variables():
             tf.summary.histogram(var.name,var,collections=['train'])
-        for grad,var in list_action_grads_full:
-            tf.summary.histogram(var.name + '/gradient_action', grad,collections=['train'])
-        for grad,var in list_fwd_consist_grads_full:
-            tf.summary.histogram(var.name + '/gradient_fwd_consist', grad,collections=['train'])
+        if self.fwd_consist:
+          for grad,var in list_action_grads_full:
+              tf.summary.histogram(var.name + '/gradient_action', grad,collections=['train'])
+        else:
+          for grad,var in action_grads_full:
+              tf.summary.histogram(var.name + '/gradient_action', grad,collections=['train'])
+        if self.fwd_consist:
+          for grad,var in list_fwd_consist_grads_full:
+              tf.summary.histogram(var.name + '/gradient_fwd_consist', grad,collections=['train'])
         self.train_summaries = tf.summary.merge_all('train')
         self.writer = tf.summary.FileWriter('./results/{0}/logs/{1}'.format(self.name, time.time()))
 
@@ -326,6 +337,7 @@ class GelSight():
 
             ops_to_run = []
             ops_to_run.append(self.pred_loss)
+            '''		
             if ii < self.unfreeze_time:
                 ops_to_run.append(self.optimize_action_no_alex)
                 if self.fwd_consist:
@@ -340,7 +352,13 @@ class GelSight():
                     ops_to_run.append(self.optimize_action_full)
                 else:
                     ops_to_run.append(self.optimize_action_alex)
-
+            '''
+            #We are not dealing with fwd freeze loss. ###BEWARE#### NO FREEZE or AUTOENCODE
+            if self.fwd_consist:
+                ops_to_run.append(self.optimize_fwd_full)
+                ops_to_run.append(self.optimize_action_full)
+            else:
+                ops_to_run.append(self.optimize_action_alex)
 
             ops_to_run.append(self.train_summaries)
             op_results = self.sess.run(ops_to_run, feed_dict=feed_dict)
@@ -378,6 +396,7 @@ if __name__ == "__main__":
     parser = AP.ArgumentParser()
     parser.add_argument("--input",default=None,type=str,help="File name with data")
     parser.add_argument("--niters",default=1,type=int,help="Number of training iterations")
+    parser.add_argument("--action_lr",default=1e-4,type=float,help="Learning rate for the action network")
     parser.add_argument("--fwd",default="False",type=str,help="Boolean flag that trains for forward consistency")
     parser.add_argument("--name",default="Predictions",type=str,help="Expt Name")
     parser.add_argument("--debug",default="False",type=str,help="Boolean flag that sets Debug")
@@ -388,5 +407,5 @@ if __name__ == "__main__":
     parsed.discrete = str2bool(parsed.discrete)
     print("Job Parameters are")
     print(parsed)
-    GS = GelSight(name=parsed.name,fwd_consist = parsed.fwd,DEBUG=parsed.debug,discreteAction=parsed.discrete)
+    GS = GelSight(name=parsed.name,fwd_consist = parsed.fwd,DEBUG=parsed.debug,discreteAction=parsed.discrete,action_lr=parsed.action_lr)
     GS.train(parsed.niters)
