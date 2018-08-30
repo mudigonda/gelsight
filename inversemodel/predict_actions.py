@@ -77,8 +77,8 @@ class GelSight():
           print("Ordering Data")
           self.order_data()
           self.get_batch = self.generate_gelsight_data
-        self.image_PH = tf.placeholder(tf.float32, [None, IM_SIZE,IM_SIZE,CHANNELS], name = 'image_PH')
-        self.goal_image_PH = tf.placeholder(tf.float32, [None,IM_SIZE,IM_SIZE,CHANNELS], name = 'goal_image_PH')
+        self.image_PH = tf.placeholder(tf.float32, [None, IM_SIZE0,IM_SIZE0,CHANNELS], name = 'image_PH')
+        self.goal_image_PH = tf.placeholder(tf.float32, [None,IM_SIZE0,IM_SIZE0,CHANNELS], name = 'goal_image_PH')
         if self.discreteAction:
             self.gtTheta_PH = tf.placeholder(tf.int32,[None,BINS])
             self.gtRho_PH = tf.placeholder(tf.int32,[None,BINS])
@@ -113,6 +113,9 @@ class GelSight():
           #pred_loss = tf.nn.l2_loss(pred_actions -self.gtAction_PH)/(2*BATCH_SIZE)
           pred_loss = tf.reduce_mean(tf.reduce_sum((pred_actions -self.gtAction_PH)**2,axis=1))
         tf.add_to_collection('pred_loss',pred_loss)
+        if self.discreteAction:	
+          tf.add_to_collection('theta_loss',theta_loss)
+          tf.add_to_collection('rho_loss',rho_loss)
         inv_vars_no_alex = [v for v in tf.trainable_variables() if 'alexnet' not in v.name]
         print('Action prediction tensors consist {0} out of {1}'.format(len(inv_vars_no_alex), len(tf.trainable_variables())))
         action_optimizer = tf.train.AdamOptimizer(action_lr)
@@ -217,6 +220,9 @@ class GelSight():
 
         #Logging
         tf.summary.scalar('model/action_loss',pred_loss,collections=['train'])
+        if self.discreteAction:
+          tf.summary.scalar('model/theta_loss',theta_loss,collections=['train'])
+          tf.summary.scalar('model/rho_loss',rho_loss,collections=['train'])
         tf.summary.image('before',self.image_PH/255.,max_outputs=5,collections=['train'])
         tf.summary.image('after',self.goal_image_PH/255.,max_outputs=5,collections=['train'])
         if self.fwd_consist:
@@ -247,8 +253,8 @@ class GelSight():
             os.makedirs(self.model_directory)
 
     def generate_toy_data(self,isTraining=True):
-        images = np.random.randn(BATCH_SIZE,IM_SIZE,IM_SIZE,CHANNELS)
-        goal_images = np.random.randn(BATCH_SIZE,IM_SIZE,IM_SIZE,CHANNELS)
+        images = np.random.randn(BATCH_SIZE,IM_SIZE0,IM_SIZE0,CHANNELS)
+        goal_images = np.random.randn(BATCH_SIZE,IM_SIZE0,IM_SIZE0,CHANNELS)
         if self.discreteAction:
           from sklearn.preprocessing import MultiLabelBinarizer
           mlb = MultiLabelBinarizer(classes = np.arange(BINS))
@@ -309,11 +315,15 @@ class GelSight():
         else:
           idx = np.random.randint(TrainSplit,self.images.shape[0],self.images.shape[0]-TrainSplit)
         #resizing to address the 200 200 issue
+        '''	
         tmp_im = np.zeros((len(idx),IM_SIZE,IM_SIZE,CHANNELS))
         tmp_goal_im = np.zeros((len(idx),IM_SIZE,IM_SIZE,CHANNELS))
         for ii in range(len(idx)):
             tmp_im[ii,...] = resize(self.images[idx[ii],...],[IM_SIZE,IM_SIZE])  
             tmp_goal_im[ii,...] = resize(self.goal_images[idx[ii],...], [IM_SIZE, IM_SIZE])
+        '''
+        tmp_im = self.images[idx,...]
+        tmp_goal_im = self.goal_images[idx,...]
         if self.discreteAction:
           feed_dict = {
           self.goal_image_PH:tmp_goal_im,
