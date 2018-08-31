@@ -24,6 +24,7 @@ import src
 import src.env
 
 # import progressbar
+import argparse
 import gym
 import time
 import os
@@ -337,7 +338,14 @@ def train_network(dataset, model, parameters=DotMap()):
     logger.info('Optimization completed in %f[s]' % (endTime - startTime))
     return model.cpu(), logs
 
+def str2bool(varName):
+    if varName == "False":
+        return False
+    else:
+        return True
 
+def HWC2CHW(input):
+   return np.rollaxis(input, 0, 3).astype(np.uint8)
 if __name__ == '__main__':
 
     COLLECT_DATA = True
@@ -346,11 +354,21 @@ if __name__ == '__main__':
 
     folderData = 'data/pointmass'
     extension = '.log'
+    AP = argparse.ArgumentParser()
+    AP.add_argument('--N_REPS',default=1,type=int,help="Number of Episodes")
+    AP.add_argument('--COLLECT_DATA',default="True",type=str,help="Number of Episodes")
+    AP.add_argument('--CREATE_DATASET',default="True",type=str,help="Number of Episodes")
+    AP.add_argument('--TRAIN_MODEL',default="False",type=str,help="Number of Episodes")
+    parsed = AP.parse_args()
+
+    parsed.COLLECT_DATA = str2bool(parsed.COLLECT_DATA)
+    parsed.CREATE_DATASET = str2bool(parsed.CREATE_DATASET)
+    parsed.TRAIN_MODEL = str2bool(parsed.TRAIN_MODEL)
 
     # Collect random data
     if COLLECT_DATA:
         src.create_folder(folderData)
-        N_REPS = 1000
+        N_REPS = parsed.N_REPS
         HORIZON = 50
         POLICY = randpolicy()
         print("Starting simulator")
@@ -362,7 +380,7 @@ if __name__ == '__main__':
             src.SaveData(log, fileName='%s/%s.log' % (folderData, nameFile))
 
     # Create dataset
-    if CREATE_DATASET:
+    if parsed.CREATE_DATASET:
         logger.info('Creating Dataset')
         inputs = []
         outputs = []
@@ -377,7 +395,7 @@ if __name__ == '__main__':
         src.SaveData(dataset, fileName='%s/dataset.pkl' % folderData)
 
     # Train Model
-    if TRAIN_MODEL:
+    if parsed.TRAIN_MODEL:
 
         def init_weights(m):
             if type(m) == nn.Linear:
@@ -395,17 +413,14 @@ if __name__ == '__main__':
         model, logs = train_network(dataset=dataset, model=model, parameters=p)
         torch.save(model, '%s/model.pt' % folderData)
 
-    dataset = src.LoadData('%s/dataset.pkl' % folderData)
-    model = torch.load('%s/model.pt' % folderData)
-    idx = 0
-    pred = model.predict(dataset[0][idx])
+        dataset = src.LoadData('%s/dataset.pkl' % folderData)
+        model = torch.load('%s/model.pt' % folderData)
+        idx = 0
+        pred = model.predict(dataset[0][idx])
 
-    def HWC2CHW(input):
-        return np.rollaxis(input, 0, 3).astype(np.uint8)
+        plt.figure()
+        plt.imshow(HWC2CHW(dataset[0][idx][0]))
 
-    plt.figure()
-    plt.imshow(HWC2CHW(dataset[0][idx][0]))
-
-    plt.figure()
-    plt.imshow(HWC2CHW(pred))
-    plt.show()
+        plt.figure()
+        plt.imshow(HWC2CHW(pred))
+        plt.show()
