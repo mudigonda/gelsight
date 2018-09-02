@@ -6,7 +6,8 @@ import tensorflow as tf
 slim = tf.contrib.slim
 import argparse as AP
 import time
-import alexnet_randinit
+#import alexnet_randinit
+import cifar10
 from skimage.transform import resize
 
 CONFIG = tf.ConfigProto()
@@ -93,31 +94,20 @@ class GelSight():
         self.autoencode_PH = tf.placeholder(tf.bool)
 
         #get latent embeddings
-        latent_image, latent_conv5_image = alexnet_randinit.network(self.image_PH, trainable=True, num_outputs=ENCODING_SIZE)
+        cifar10_logits = cifar10.network(self.image_PH)
         if self.diffIm == False:
-          latent_goal_image, latent_conv5_goal_image = alexnet_randinit.network(self.goal_image_PH, trainable=True, num_outputs=ENCODING_SIZE, reuse=True)
-          # concatenate the latent representations and share information
-          features = tf.concat([latent_image, latent_goal_image],axis=1)
-        else:
-          features = latent_image
+          print("Does not work for a pair of images")
+          return
 
-        with tf.variable_scope("concat_fc"):
-            x = tf.nn.relu(features)
-            x = slim.fully_connected(x, FEAT_SIZE, scope="concat_fc")
 
-        #Create pred network
-        if self.discreteAction:
-          pred_actions = create_network(x,[[FEAT_SIZE,200],[200,100],[100,BINS*2]]) #For theta and rho we create Bin sized vector
-        else:
-          pred_actions = create_network(x,[[FEAT_SIZE,200],[200,100],[100,ACTION_DIMS]])
         #Loss
         if self.discreteAction:
-          rho_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=pred_actions[:,:BINS],labels=self.gtRho_PH))
-          theta_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=pred_actions[:,BINS:],labels=self.gtTheta_PH))
+          rho_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=cifar10_logits[:,:BINS],labels=self.gtRho_PH))
+          theta_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=cifar10_logits[:,BINS:],labels=self.gtTheta_PH))
           pred_loss = rho_loss + theta_loss	
         else:
-          #pred_loss = tf.nn.l2_loss(pred_actions -self.gtAction_PH)/(2*BATCH_SIZE)
-          pred_loss = tf.reduce_mean(tf.reduce_sum((pred_actions -self.gtAction_PH)**2,axis=1))
+          print("Does not work for continuous actions")
+          return 
         tf.add_to_collection('pred_loss',pred_loss)
         if self.discreteAction:	
           tf.add_to_collection('theta_loss',theta_loss)
@@ -137,9 +127,9 @@ class GelSight():
         action_grads_full = zip(action_grads_full, tf.trainable_variables())
 
         #Eval
-        self.pred_actions = pred_actions
+        self.pred_actions = cifar10_logits 
         self.pred_loss = pred_loss
-        import IPython; IPython.embed()
+        #import IPython; IPython.embed()
 
         #################################
         # FORWARD CONSISTENCY
@@ -267,8 +257,7 @@ class GelSight():
             os.makedirs(self.model_directory)
 
     def generate_toy_data(self,isTraining=True):
-        images = np.random.randn(BATCH_SIZE,IM_SIZE0,IM_SIZE0,CHANNELS)
-        goal_images = np.random.randn(BATCH_SIZE,IM_SIZE0,IM_SIZE0,CHANNELS)
+        images = np.random.randn(BATCH_SIZE,IM_SIZE,IM_SIZE,CHANNELS)
         if self.discreteAction:
           from sklearn.preprocessing import MultiLabelBinarizer
           mlb = MultiLabelBinarizer(classes = np.arange(BINS))
@@ -277,18 +266,13 @@ class GelSight():
           theta_one_hot = mlb.fit_transform(theta)
           rho_one_hot = mlb.fit_transform(rho)
           feed_dict = {
-          self.goal_image_PH:goal_images,
           self.image_PH:images,
           self.gtTheta_PH:theta_one_hot,
           self.gtRho_PH:rho_one_hot,
           self.autoencode_PH:False}
         else:
-          actions = np.ones((BATCH_SIZE,ACTION_DIMS))
-          feed_dict = {
-          self.goal_image_PH:goal_images,
-          self.image_PH:images,
-          self.gtAction_PH:actions,
-          self.autoencode_PH:False}
+          print("Need discrete Action")
+          return
         return feed_dict 
 
     def load_data(self):
@@ -350,24 +334,8 @@ class GelSight():
             self.gtRho_PH:self.actions[0][idx],#rho is the first array
             self.autoencode_PH:False}
           else:
-            feed_dict = {
-            self.image_PH:tmp_im - tmp_goal_im,
-            self.gtAction_PH:self.actions[idx,...],
-            self.autoencode_PH:False}
-        else:
-          if self.discreteAction:
-            feed_dict = {
-            self.goal_image_PH:tmp_goal_im,
-            self.image_PH:tmp_im,
-            self.gtTheta_PH:self.actions[1][idx],#theta is the second array
-            self.gtRho_PH:self.actions[0][idx],#rho is the first array
-            self.autoencode_PH:False}
-          else:
-            feed_dict = {
-            self.goal_image_PH:tmp_goal_im,
-            self.image_PH:tmp_im,
-            self.gtAction_PH:self.actions[idx,...],
-            self.autoencode_PH:False}
+            print("Need discrete ACtion")
+            return
         return feed_dict 
 
     def train(self,niters=1):
