@@ -198,6 +198,7 @@ def distorted_inputs(data_dir, batch_size):
            'This will take a few minutes.' % min_queue_examples)
 
   # Generate a batch of images and labels by building up a queue of examples.
+  import IPython; IPython.embed()
   return _generate_image_and_label_batch(float_image, read_input.label,
                                          min_queue_examples, batch_size,
                                          shuffle=True)

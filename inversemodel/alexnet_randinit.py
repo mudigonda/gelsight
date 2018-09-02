@@ -109,7 +109,7 @@ def network(x, trainable=False, reuse=None, num_outputs=100):
         print("REUSE")
         print(reuse)
         #conv1
-        k_h = 11; k_w = 11; c_o1 = 96; s_h = 4; s_w = 4; channels = 3
+        k_h = 11; k_w = 11; c_o1 = 96; s_h = 1; s_w = 1; channels = 3
         conv1W_filter = tf.get_variable('conv1_W',[k_h,k_w,channels,c_o1],initializer = tf.truncated_normal_initializer(stddev=5e-2,dtype=tf.float32),dtype=tf.float32)
         conv1W_bias = tf.get_variable('conv1_B',[c_o1],initializer = tf.truncated_normal_initializer(stddev=5e-1,dtype=tf.float32),dtype=tf.float32)
         conv1_in = conv(x, conv1W_filter, conv1W_bias, k_h, k_w, c_o1, s_h, s_w, padding="SAME") 
@@ -128,7 +128,7 @@ def network(x, trainable=False, reuse=None, num_outputs=100):
         maxpool1 = tf.nn.max_pool(lrn1, ksize=[1, k_h, k_w, 1], strides=[1, s_h, s_w, 1], padding=padding)
 
         #conv2
-        k_h = 5; k_w = 5; c_o2 = 256; s_h = 1; s_w = 1; group = 2
+        k_h = 11; k_w = 11; c_o2 = 256; s_h = 1; s_w = 1; group = 2
         conv2W_filter = tf.get_variable('conv2_W',[k_h,k_w,c_o1,c_o2],initializer = tf.truncated_normal_initializer(stddev=5e-2,dtype=tf.float32),dtype=tf.float32)
         conv2W_bias = tf.get_variable('conv2_B',[c_o2],initializer = tf.truncated_normal_initializer(stddev=5e-1,dtype=tf.float32),dtype=tf.float32)
         conv2_in = conv(maxpool1, conv2W_filter, conv2W_bias, k_h, k_w, c_o2, s_h, s_w, padding="SAME") 
@@ -144,10 +144,11 @@ def network(x, trainable=False, reuse=None, num_outputs=100):
                                                           bias=bias)
 
         #maxpool2
-        #max_pool(3, 3, 2, 2, padding='VALID', name='pool2')
         k_h = 3; k_w = 3; s_h = 2; s_w = 2; padding = 'VALID'
+        #k_h = 7; k_w = 7; s_h = 3; s_w = 3; padding = 'VALID'
         maxpool2 = tf.nn.max_pool(lrn2, ksize=[1, k_h, k_w, 1], strides=[1, s_h, s_w, 1], padding=padding)
-        #return tf.reshape(maxpool2,[-1,prod(maxpool2.get_shape()[1:])])
+        #maxpool2 = tf.nn.avg_pool(lrn2, ksize=[1, k_h, k_w, 1], strides=[1, s_h, s_w, 1], padding=padding)
+        #return tf.reshape(maxpool2,[-1,prod(maxpool2.get_shape()[1:])]),maxpool2
         #conv3
         #conv(3, 3, 384, 1, 1, name='conv3')
         k_h = 3; k_w = 3; c_o3 = 384; s_h = 1; s_w = 1; group = 1

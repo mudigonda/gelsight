@@ -68,6 +68,7 @@ def train():
     with tf.device('/cpu:0'):
       #images, labels = cifar10.distorted_inputs()
       images, labels = gelsight.load()
+      import IPython; IPython.embed()
 
     # Build a Graph that computes the logits predictions from the
     # inference model.
@@ -118,7 +119,9 @@ def train():
 
 
 def main(argv=None):  # pylint: disable=unused-argument
+  #print("Downloading and extracting data")
   #cifar10.maybe_download_and_extract()
+  #print("Data has been downloaded")
   if tf.gfile.Exists(FLAGS.train_dir):
     tf.gfile.DeleteRecursively(FLAGS.train_dir)
   tf.gfile.MakeDirs(FLAGS.train_dir)

@@ -57,6 +57,7 @@ def load(batch_size=50):
     for ii in range(49000):
        diff_im[ii,...] =  resize(diff_im_orig[ii,...],[32,32,3]) 
     diff_im = (diff_im - diff_im.mean(axis=0))/ diff_im.std(axis=0)
+    import IPython; IPython.embed()
     diff_im = tf.cast(diff_im,tf.float32)
     min_fraction_of_examples_in_queue = 0.4
     min_queue_examples = int(NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN *
