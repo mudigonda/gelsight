@@ -98,11 +98,59 @@ def conv(inp, kernel, biases, k_h, k_w, c_o, s_h, s_w,  padding="VALID", group=1
 
 
 
+def put_kernels_on_grid (kernel, pad = 1):
+
+  '''Visualize conv. filters as an image (mostly for the 1st layer).
+  Arranges filters into a grid, with some paddings between adjacent filters.
+  Args:
+    kernel:            tensor of shape [Y, X, NumChannels, NumKernels]
+    pad:               number of black pixels around each filter (between them)
+  Return:
+    Tensor of shape [1, (Y+2*pad)*grid_Y, (X+2*pad)*grid_X, NumChannels].
+  '''
+  # get shape of the grid. NumKernels == grid_Y * grid_X
+  def factorization(n):
+    for i in range(int(sqrt(float(n))), 0, -1):
+      if n % i == 0:
+        if i == 1: print('Who would enter a prime number of filters')
+        return (i, int(n / i))
+  (grid_Y, grid_X) = factorization (kernel.get_shape()[3].value)
+  print ('grid: %d = (%d, %d)' % (kernel.get_shape()[3].value, grid_Y, grid_X))
+
+  x_min = tf.reduce_min(kernel)
+  x_max = tf.reduce_max(kernel)
+  kernel = (kernel - x_min) / (x_max - x_min)
+
+  # pad X and Y
+  x = tf.pad(kernel, tf.constant( [[pad,pad],[pad, pad],[0,0],[0,0]] ), mode = 'CONSTANT')
+
+  # X and Y dimensions, w.r.t. padding
+  Y = kernel.get_shape()[0] + 2 * pad
+  X = kernel.get_shape()[1] + 2 * pad
+
+  channels = kernel.get_shape()[2]
+
+  # put NumKernels to the 1st dimension
+  x = tf.transpose(x, (3, 0, 1, 2))
+  # organize grid on Y axis
+  x = tf.reshape(x, tf.stack([grid_X, Y * grid_Y, X, channels]))
+
+  # switch X and Y axes
+  x = tf.transpose(x, (0, 2, 1, 3))
+  # organize grid on X axis
+  x = tf.reshape(x, tf.stack([1, X * grid_X, Y * grid_Y, channels]))
+
+  # back to normal order (not combining with the next step for clarity)
+  x = tf.transpose(x, (2, 1, 3, 0))
+
+  # to tf.image_summary order [batch_size, height, width, channels],
+  #   where in this case batch_size == 1
+  x = tf.transpose(x, (3, 0, 1, 2))
+
+  # scaling to [0, 255] is not necessary for tensorboard
+  return x
 # x = tf.placeholder(tf.float32, (None,) + xdim)
 
-def var(name,data, trainable):
-    return tf.get_variable(name, initializer=tf.constant(data), trainable=trainable)
-    # return tf.get_variable(name, shape=data.shape, initializer=trunc_normal(0.01), trainable=trainable)
 
 def network(x, trainable=False, reuse=None, num_outputs=100):
     with tf.variable_scope("alexnet", reuse=reuse) as sc:
@@ -114,6 +162,8 @@ def network(x, trainable=False, reuse=None, num_outputs=100):
         conv1W_bias = tf.get_variable('conv1_B',[c_o1],initializer = tf.truncated_normal_initializer(stddev=5e-1,dtype=tf.float32),dtype=tf.float32)
         conv1_in = conv(x, conv1W_filter, conv1W_bias, k_h, k_w, c_o1, s_h, s_w, padding="SAME") 
         conv1 = tf.nn.relu(conv1_in)
+        tf.summary.histogram('conv1_activations',conv1,collections=['train'])
+        tf.summary.image('conv1_weights',put_kernels_on_grid(conv1W_filter),collections=['train'])
 
         #lrn1
         radius = 2; alpha = 2e-05; beta = 0.75; bias = 1.0
@@ -133,6 +183,8 @@ def network(x, trainable=False, reuse=None, num_outputs=100):
         conv2W_bias = tf.get_variable('conv2_B',[c_o2],initializer = tf.truncated_normal_initializer(stddev=5e-1,dtype=tf.float32),dtype=tf.float32)
         conv2_in = conv(maxpool1, conv2W_filter, conv2W_bias, k_h, k_w, c_o2, s_h, s_w, padding="SAME") 
         conv2 = tf.nn.relu(conv2_in)
+        tf.summary.histogram('conv2_activations',conv2,collections=['train'])
+        #tf.summary.image('conv2_weights',put_kernels_on_grid(conv2W_filter),collections=['train'])
 
         #lrn2
         #lrn(2, 2e-05, 0.75, name='norm2')
@@ -156,6 +208,8 @@ def network(x, trainable=False, reuse=None, num_outputs=100):
         conv3W_bias = tf.get_variable('conv3_B',[c_o3],initializer = tf.truncated_normal_initializer(stddev=5e-1,dtype=tf.float32),dtype=tf.float32)
         conv3_in = conv(maxpool2, conv3W_filter, conv3W_bias, k_h, k_w, c_o3, s_h, s_w, padding="SAME", group=group)
         conv3 = tf.nn.relu(conv3_in)
+        tf.summary.histogram('conv3_activations',conv3,collections=['train'])
+        #tf.summary.image('conv3_weights',put_kernels_on_grid(conv3W_filter),collections=['train'])
         #conv4
         #conv(3, 3, 384, 1, 1, group=2, name='conv4')
         k_h = 3; k_w = 3; c_o4 = 384; s_h = 1; s_w = 1; group = 2
@@ -163,6 +217,8 @@ def network(x, trainable=False, reuse=None, num_outputs=100):
         conv4W_bias = tf.get_variable('conv4_B',[c_o4],initializer = tf.truncated_normal_initializer(stddev=5e-1,dtype=tf.float32),dtype=tf.float32)
         conv4_in = conv(conv3, conv4W_filter, conv4W_bias, k_h, k_w, c_o4, s_h, s_w, padding="SAME", group=group)
         conv4 = tf.nn.relu(conv4_in)
+        tf.summary.histogram('conv4_activations',conv4,collections=['train'])
+        #tf.summary.image('conv4_weights',put_kernels_on_grid(conv4W_filter),collections=['train'])
 
 
         #conv5
@@ -172,6 +228,8 @@ def network(x, trainable=False, reuse=None, num_outputs=100):
         conv5W_bias = tf.get_variable('conv5_B',[c_o5],initializer = tf.truncated_normal_initializer(stddev=5e-1,dtype=tf.float32),dtype=tf.float32)
         conv5_in = conv(conv4, conv5W_filter, conv5W_bias, k_h, k_w, c_o5, s_h, s_w, padding="SAME", group=group)
         conv5 = tf.nn.relu(conv5_in)
+        tf.summary.histogram('conv5_activations',conv5,collections=['train'])
+        #tf.summary.image('conv5_weights',put_kernels_on_grid(conv5W_filter),collections=['train'])
 
         # #maxpool5
         #max_pool(3, 3, 2, 2, padding='VALID', name='pool5')

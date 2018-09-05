@@ -8,6 +8,7 @@ import argparse as AP
 import time
 import alexnet_randinit
 from skimage.transform import resize
+from scipy.ndimage import shift
 
 CONFIG = tf.ConfigProto()
 CONFIG.gpu_options.allow_growth = True
@@ -100,7 +101,7 @@ class GelSight():
           features = tf.concat([latent_image, latent_goal_image],axis=1)
         else:
           features = latent_image
-
+        tf.summary.histogram('features',features,collections=['train'])
         with tf.variable_scope("concat_fc"):
             x = tf.nn.relu(features)
             x = slim.fully_connected(x, FEAT_SIZE, scope="concat_fc")
@@ -139,7 +140,6 @@ class GelSight():
         #Eval
         self.pred_actions = pred_actions
         self.pred_loss = pred_loss
-        import IPython; IPython.embed()
 
         #################################
         # FORWARD CONSISTENCY
@@ -330,14 +330,16 @@ class GelSight():
         if isTraining:
           idx = np.random.randint(0,TrainSplit,BATCH_SIZE)
         else:
-          #idx = np.random.randint(TrainSplit,self.images.shape[0],self.images.shape[0]-TrainSplit)
-          idx = np.arange(self.images.shape[0]-100,self.images.shape[0])
+          idx = np.random.randint(TrainSplit,self.images.shape[0],self.images.shape[0]-TrainSplit)
+          #idx = np.arange(self.images.shape[0]-100,self.images.shape[0])
         #resizing to address the 200 200 issue
         tmp_im = np.zeros((len(idx),IM_SIZE,IM_SIZE,CHANNELS))
         tmp_goal_im = np.zeros((len(idx),IM_SIZE,IM_SIZE,CHANNELS))
+        shift_val_x = np.random.randint(-5,5,1).flatten()
+        shift_val_y = np.random.randint(-5,5,1).flatten()
         for ii in range(len(idx)):
-            tmp_im[ii,...] = resize(self.images[idx[ii],...],[IM_SIZE,IM_SIZE])  
-            tmp_goal_im[ii,...] = resize(self.goal_images[idx[ii],...], [IM_SIZE, IM_SIZE])
+            tmp_im[ii,...] = shift(resize(self.images[idx[ii],...],[IM_SIZE,IM_SIZE]),[shift_val_y,shift_val_x,0],mode='wrap',order=0)
+            tmp_goal_im[ii,...] = shift(resize(self.goal_images[idx[ii],...], [IM_SIZE, IM_SIZE]),[shift_val_y,shift_val_x,0],mode='wrap',order=0)
         '''
         tmp_im = self.images[idx,...]
         tmp_goal_im = self.goal_images[idx,...]

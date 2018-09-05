@@ -48,9 +48,9 @@ def _activation_summary(x):
   # Remove 'tower_[0-9]/' from the name in case this is a multi-GPU training
   # session. This helps the clarity of presentation on tensorboard.
   tensor_name = re.sub('%s_[0-9]*/' % TOWER_NAME, '', x.op.name)
-  tf.summary.histogram(tensor_name + '/activations', x)
+  tf.summary.histogram(tensor_name + '/activations', x,collections=['train'])
   tf.summary.scalar(tensor_name + '/sparsity',
-                                       tf.nn.zero_fraction(x))
+                                       tf.nn.zero_fraction(x),collections=['train'])
 
 def _variable_on_cpu(name, shape, initializer):
   """Helper to create a Variable stored on CPU memory.
@@ -182,3 +182,46 @@ def network(images):
     _activation_summary(softmax_linear)
 
   return softmax_linear
+
+
+
+def network_small(images):
+  """Build the CIFAR-10 model.
+
+  Args:
+    images: Images returned from distorted_inputs() or inputs().
+
+  Returns:
+    Logits.
+  """
+  # We instantiate all variables using tf.get_variable() instead of
+  # tf.Variable() in order to share variables across multiple GPU training runs.
+  # If we only ran this model on a single GPU, we could simplify this function
+  # by replacing all instances of tf.get_variable() with tf.Variable().
+  #
+  # conv1
+  with tf.variable_scope('conv1') as scope:
+    kernel = _variable_with_weight_decay('weights',
+                                         shape=[5, 5, 3, 64],
+                                         stddev=5e-2,
+                                         wd=None)
+    conv = tf.nn.conv2d(images, kernel, [1, 1, 1, 1], padding='SAME')
+    biases = _variable_on_cpu('biases', [64], tf.constant_initializer(0.0))
+    pre_activation = tf.nn.bias_add(conv, biases)
+    conv1 = tf.nn.relu(pre_activation, name=scope.name)
+    _activation_summary(conv1)
+
+  # pool1
+  pool1 = tf.nn.max_pool(conv1, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1],
+                         padding='SAME', name='pool1')
+  # norm1
+  norm1 = tf.nn.lrn(pool1, 4, bias=1.0, alpha=0.001 / 9.0, beta=0.75,
+                    name='norm1')
+  
+  with tf.variable_scope('local1') as scope:
+    weights = _variable_with_weight_decay('weights', shape=[np.prod(norm1.get_shape().as_list()[1:]), NUM_CLASSES],
+                                          stddev=0.04, wd=0.004)
+    biases = _variable_on_cpu('biases', [NUM_CLASSES], tf.constant_initializer(0.1))
+    local1 = tf.nn.relu(tf.matmul(tf.reshape(norm1,[-1,np.prod(norm1.get_shape().as_list()[1:])]), weights) + biases, name=scope.name)
+    _activation_summary(local1)
+  return local1

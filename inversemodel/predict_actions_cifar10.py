@@ -94,7 +94,8 @@ class GelSight():
         self.autoencode_PH = tf.placeholder(tf.bool)
 
         #get latent embeddings
-        cifar10_logits = cifar10.network(self.image_PH)
+        #cifar10_logits = cifar10.network(self.image_PH)
+        cifar10_logits = cifar10.network_small(self.image_PH)
         if self.diffIm == False:
           print("Does not work for a pair of images")
           return
@@ -413,11 +414,13 @@ if __name__ == "__main__":
     parser.add_argument("--diffIm",default="False",type=str,help="Boolean flag that sets if we should use inputs as diff images. Default is False")
     parser.add_argument("--discrete",default="False",type=str,help="Boolean flag that sets Discrete Actions. Default is False")
     parser.add_argument("--optimizer",default="Adam",type=str,help="Optimizer when specified by Adam runs Adam the else condition runs GD")
+    parser.add_argument("--small",default="False",type=str,help="Small Network")
     parsed = parser.parse_args()
     parsed.fwd = str2bool(parsed.fwd)
     parsed.debug = str2bool(parsed.debug)
     parsed.diffIm = str2bool(parsed.diffIm)
     parsed.discrete = str2bool(parsed.discrete)
+    parsed.small = str2bool(parsed.small)
     print("Job Parameters are")
     print(parsed)
     GS = GelSight(name=parsed.name,fwd_consist = parsed.fwd,DEBUG=parsed.debug,discreteAction=parsed.discrete,action_lr=parsed.action_lr,diffIm=parsed.diffIm,optimizer=parsed.optimizer)
