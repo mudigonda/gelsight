@@ -52,16 +52,15 @@ def leaky_relu(x, alpha):
     return tf.maximum(x, alpha * x)
 
 class GelSight():
-    def __init__(self,name,DEBUG=False,unfreeze_time=30000, autoencode=False,
+    def __init__(self,name,DEBUG=False, autoencode=False,
         action_lr=1e-4, deconv_lr=1e-3, fwd_consist=False, baseline_reg=False, softmaxBackprop=True,
-        gtAction=False,discreteAction=False,diffIm=False,optimizer='Adam'):
+        gtAction=False,discreteAction=False,diffIm=False,optimizer='Adam',saved_model= None):
         print("GelSight Class")
-        self.unfreeze_time = unfreeze_time
-        self.autoencode = autoencode
         self.gtAction = gtAction
         self.discreteAction = discreteAction
         self.diffIm = diffIm
         self.optimizer = optimizer
+        self.saved_model = saved_model
         self.name = '{0}_{1}_{2}_{3}_{4}_{5}_{6}'.format(name, 'fwdconsist' + str(fwd_consist), 
             'autoencode' + str(autoencode),
             'discrAct' + str(discreteAction), 
@@ -75,14 +74,15 @@ class GelSight():
           print("Debug mode")
           self.get_batch = self.generate_toy_data
         else:
-          print("Real Data")
-          self.path = '/home/ubuntu/Data/gelsight/'
-          self.normalize = True 
-          print("Data loading")
-          self.load_data()
-          print("Ordering Data")
-          self.order_data()
-          self.get_batch = self.generate_gelsight_data
+          if self.saved_model is None:
+            print("Real Data")
+            self.path = '/home/ubuntu/Data/gelsight/'
+            self.normalize = True 
+            print("Data loading")
+            self.load_data()
+            print("Ordering Data")
+            self.order_data()
+            self.get_batch = self.generate_gelsight_data
         self.image_PH = tf.placeholder(tf.float32, [None, IM_SIZE,IM_SIZE,CHANNELS], name = 'image_PH')
         if self.diffIm == False:
             self.goal_image_PH = tf.placeholder(tf.float32, [None,IM_SIZE,IM_SIZE,CHANNELS], name = 'goal_image_PH')
@@ -261,6 +261,9 @@ class GelSight():
 
         self.sess = tf.Session(config=CONFIG)
         self.sess.run(tf.global_variables_initializer())
+        if self.saved_model:
+           with self.sess as sess:
+              self.saver.restore(sess,self.saved_model)
 
         self.model_directory = './results/{0}/models/'.format(self.name)
         if not os.path.exists(self.model_directory):
@@ -372,6 +375,9 @@ class GelSight():
             self.autoencode_PH:False}
         return feed_dict 
 
+    def inference(self):
+        return
+
     def train(self,niters=1):
         print("Will train for {} steps".format(niters))
         for ii in range(self.start, niters):
@@ -447,6 +453,7 @@ if __name__ == "__main__":
     parser.add_argument("--diffIm",default="False",type=str,help="Boolean flag that sets if we should use inputs as diff images. Default is False")
     parser.add_argument("--discrete",default="False",type=str,help="Boolean flag that sets Discrete Actions. Default is False")
     parser.add_argument("--optimizer",default="Adam",type=str,help="Optimizer when specified by Adam runs Adam the else condition runs GD")
+    parser.add_argument("--load_model",default=None,type=str,help="Point to the path and checkpoint file")
     parsed = parser.parse_args()
     parsed.fwd = str2bool(parsed.fwd)
     parsed.debug = str2bool(parsed.debug)
@@ -454,5 +461,6 @@ if __name__ == "__main__":
     parsed.discrete = str2bool(parsed.discrete)
     print("Job Parameters are")
     print(parsed)
-    GS = GelSight(name=parsed.name,fwd_consist = parsed.fwd,DEBUG=parsed.debug,discreteAction=parsed.discrete,action_lr=parsed.action_lr,diffIm=parsed.diffIm,optimizer=parsed.optimizer)
+    GS = GelSight(name=parsed.name,fwd_consist = parsed.fwd,DEBUG=parsed.debug,discreteAction=parsed.discrete,action_lr=parsed.action_lr,diffIm=parsed.diffIm,optimizer=parsed.optimizer,saved_model = parsed.load_model)
+    import IPython; IPython.embed()
     GS.train(parsed.niters)
