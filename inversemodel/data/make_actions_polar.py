@@ -1,5 +1,6 @@
 import numpy as np
 from sklearn.preprocessing import MultiLabelBinarizer
+import argparse
 
 
 def cart2pol(x, y):
@@ -8,7 +9,11 @@ def cart2pol(x, y):
     return theta, rho
 
 if __name__ == "__main__":
-   actions = np.load('/home/ubuntu/Data/gelsight/input_actions.npy')
+   AP = argparse.ArgumentParser()
+   AP.add_argument("--input",type=str,default='/home/ubuntu/Data/gelsight/input_actions.npy',help="Input Fname for actions. It is currently configured to run on AWS instances but can run anywhere with the right path")
+   AP.add_argument("--output_path",type=str,default='/home/ubuntu/Data/gelsight/',help="Output path for histogrammed output. It is currently configured to run on AWS instances but can run anywhere with the right path")
+   parsed = AP.parse_args()
+   actions = np.load(parsed.input)
    theta, rho = cart2pol(actions[:,0],actions[:,1])
    #histogram
    hist_theta = np.histogram(theta)
@@ -32,5 +37,6 @@ if __name__ == "__main__":
    enc = MultiLabelBinarizer(classes=np.arange(1,rho_bin.max()+1))
    rho_one_hot = enc.fit_transform(rho_bin.reshape([-1,1]))
    #saving
-   np.save('/home/ubuntu/Data/gelsight/rho_theta_actions.npy',[rho_bin,theta_bin])
-   np.save('/home/ubuntu/Data/gelsight/rho_theta_one_hot.npy',[rho_one_hot,theta_one_hot])
+   np.save(parsed.output_path + '/rho_theta_actions.npy',[rho_bin,theta_bin])
+   np.save(parsed.output_path + '/rho_theta_one_hot.npy',[rho_one_hot,theta_one_hot])
+   np.save(parsed.output_path + '/rho_theta_hist.npy',[hist_rho,hist_theta])
