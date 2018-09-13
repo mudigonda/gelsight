@@ -144,6 +144,9 @@ class GelSight():
         #Eval
         self.pred_actions = pred_actions
         self.pred_loss = pred_loss
+        tf.add_to_collection("pred_actions",pred_actions)
+        tf.add_to_collection("pred_loss",pred_loss)
+        tf.add_to_collection("image",self.image_PH)
 
         #################################
         # FORWARD CONSISTENCY
@@ -266,12 +269,15 @@ class GelSight():
         self.sess = tf.Session(config=CONFIG)
         self.sess.run(tf.global_variables_initializer())
         if self.saved_model:
-           with self.sess as sess:
-              self.saver.restore(sess,self.saved_model)
+           print("Sess state is {}".format(self.sess._closed))
+           #with self.sess as sess:
+           self.saver.restore(self.sess,self.saved_model)
+           print("Sess state is {}".format(self.sess._closed))
 
         self.model_directory = './results/{0}/models/'.format(self.name)
         if not os.path.exists(self.model_directory):
             os.makedirs(self.model_directory)
+        print("Sess state is {}".format(self.sess._closed))
 
     def generate_toy_data(self,isTraining=True):
         images = np.random.randn(BATCH_SIZE,IM_SIZE0,IM_SIZE0,CHANNELS)
@@ -379,7 +385,20 @@ class GelSight():
             self.autoencode_PH:False}
         return feed_dict 
 
-    def inference(self):
+    def inference(self,state):
+        #create the feed_dict
+        #state needs to be normalized
+        state = (state - self.mean)/ self.std
+        #prev state and current state. Assume prev state is set
+        self.curr_im = state
+        #compute diff im
+        feed_dict = {
+        self.image_PH: self.prev_im - self.curr_im}
+        #do the sess.run()
+        pred_actions = self.sess.run(pred_actions,feed_dict=feed_dict)
+        #calculate action bins
+        #go from bins to actions by sampling uniformly with in a bin
+        #return action
         return
 
     def train(self,niters=1):
@@ -390,7 +409,7 @@ class GelSight():
 
             ops_to_run = []
             ops_to_run.append(self.pred_loss)
-            '''		
+            '''
             if ii < self.unfreeze_time:
                 ops_to_run.append(self.optimize_action_no_alex)
                 if self.fwd_consist:
@@ -445,6 +464,11 @@ def str2bool(varName):
     else:    
         return True
 
+
+def pol2cart(rho,theta):
+    x = rho*np.cos(theta)
+    y = rho*np.sin(theta)
+    return x, y
 
 if __name__ == "__main__":
     parser = AP.ArgumentParser()

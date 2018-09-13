@@ -1,5 +1,4 @@
 import sys
-sys.path.append('/home/mudigonda/anaconda3/envs/gelsight/lib/python3.5/site-packages')
 from gelsight import load_data, preprocess_data
 import numpy as np
 
