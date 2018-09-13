@@ -84,11 +84,15 @@ class GelSight():
             self.order_data()
             self.get_batch = self.generate_gelsight_data
         self.image_PH = tf.placeholder(tf.float32, [None, IM_SIZE,IM_SIZE,CHANNELS], name = 'image_PH')
+        tf.add_to_collection('image_PH',self.image_PH)
         if self.diffIm == False:
             self.goal_image_PH = tf.placeholder(tf.float32, [None,IM_SIZE,IM_SIZE,CHANNELS], name = 'goal_image_PH')
+            tf.add_to_collection('goal_image_PH',self.goal_image_PH)
         if self.discreteAction:
             self.gtTheta_PH = tf.placeholder(tf.int32,[None,BINS])
             self.gtRho_PH = tf.placeholder(tf.int32,[None,BINS])
+            tf.add_to_collection('gtTheta_PH',self.gtTheta_PH)
+            tf.add_to_collection('gtRho_PH',self.gtRho_PH)
         else:
             self.gtAction_PH = tf.placeholder(tf.float32, [None,ACTION_DIMS])
         self.autoencode_PH = tf.placeholder(tf.bool)
@@ -116,13 +120,13 @@ class GelSight():
           rho_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=pred_actions[:,:BINS],labels=self.gtRho_PH))
           theta_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=pred_actions[:,BINS:],labels=self.gtTheta_PH))
           pred_loss = rho_loss + theta_loss	
+          tf.add_to_collection('theta_loss',theta_loss)
+          tf.add_to_collection('rho_loss',rho_loss)
         else:
           #pred_loss = tf.nn.l2_loss(pred_actions -self.gtAction_PH)/(2*BATCH_SIZE)
           pred_loss = tf.reduce_mean(tf.reduce_sum((pred_actions -self.gtAction_PH)**2,axis=1))
         tf.add_to_collection('pred_loss',pred_loss)
-        if self.discreteAction:	
-          tf.add_to_collection('theta_loss',theta_loss)
-          tf.add_to_collection('rho_loss',rho_loss)
+        tf.add_to_collection('pred_actions',pred_actions)
         inv_vars_no_alex = [v for v in tf.trainable_variables() if 'alexnet' not in v.name]
         print('Action prediction tensors consist {0} out of {1}'.format(len(inv_vars_no_alex), len(tf.trainable_variables())))
         if self.optimizer == 'Adam':
@@ -462,5 +466,4 @@ if __name__ == "__main__":
     print("Job Parameters are")
     print(parsed)
     GS = GelSight(name=parsed.name,fwd_consist = parsed.fwd,DEBUG=parsed.debug,discreteAction=parsed.discrete,action_lr=parsed.action_lr,diffIm=parsed.diffIm,optimizer=parsed.optimizer,saved_model = parsed.load_model)
-    import IPython; IPython.embed()
     GS.train(parsed.niters)
