@@ -1,5 +1,6 @@
 import sys
 sys.path.append('/home/mudigonda/anaconda3/envs/gelsight/lib/python3.5/site-packages')
+import deepdish as dd
 import numpy as np
 import os
 import tensorflow as tf
@@ -13,17 +14,18 @@ from scipy.ndimage import shift
 CONFIG = tf.ConfigProto()
 CONFIG.gpu_options.allow_growth = True
 
-
-BATCH_SIZE = 100
+BATCH_SIZE = 10
 GRAD_CLIP_NORM = 40
 IM_SIZE0 = 100 
 #IM_SIZE = IM_SIZE0 
-IM_SIZE = 32 
+IM_SIZE = [48,64]
 ENCODING_SIZE = 100
 FEAT_SIZE = 200
 CHANNELS = 3
-ACTION_DIMS = 2
-TrainSplit = 48000 
+ACTION_DIMS = 3
+TrainSplit = 5500 
+ValSplit = 500
+Episode_Len = 18
 BINS = 10
 
 def init_weights(name, shape):
@@ -61,28 +63,24 @@ class GelSight():
         self.diffIm = diffIm
         self.optimizer = optimizer
         self.saved_model = saved_model
-        self.name = '{0}_{1}_{2}_{3}_{4}_{5}'.format(name, 'fwdconsist' + str(fwd_consist), 
+        self.name = '{0}_{1}_{2}_{3}_{4}'.format(name, 
             'discrAct' + str(discreteAction), 
             'diffIm' + str(diffIm),
             'action_lr' + str(action_lr),
             'optimizer' + str(optimizer) )
-        self.fwd_consist = fwd_consist
         self.start = 0
         print(self.name)
         if DEBUG:
           print("Debug mode")
           self.get_batch = self.generate_toy_data
         else:
-          if self.saved_model is None:
-            print("Real Data")
-            self.path = '/home/ubuntu/Data/gelsight/'
-            self.normalize = True 
-            print("Data loading")
-            self.load_data()
-            print("Ordering Data")
-            self.order_data()
-            self.get_batch = self.generate_gelsight_data
-        self.image_PH = tf.placeholder(tf.float32, [None, IM_SIZE,IM_SIZE,CHANNELS], name = 'image_PH')
+          print("Real Data")
+          self.path = '/home/ubuntu/Data/hd5/'
+          self.normalize = True 
+          print("Data loading")
+          self.load_data()
+          self.get_batch = self.generate_gelsight_data
+        self.image_PH = tf.placeholder(tf.float32, [None, IM_SIZE[0],IM_SIZE[1],CHANNELS], name = 'image_PH')
         if self.diffIm == False:
             self.goal_image_PH = tf.placeholder(tf.float32, [None,IM_SIZE,IM_SIZE,CHANNELS], name = 'goal_image_PH')
         if self.discreteAction:
@@ -135,7 +133,8 @@ class GelSight():
         action_grads_full, _ = zip(*action_optimizer.compute_gradients(pred_loss, tf.trainable_variables()))
         action_grads_full, _ = tf.clip_by_global_norm(action_grads_full, GRAD_CLIP_NORM)
         action_grads_full = zip(action_grads_full, tf.trainable_variables())
-
+        self.optimize_action_no_alex = action_optimizer.apply_gradients(action_grads)
+        self.optimize_action_alex = action_optimizer.apply_gradients(action_grads_full)
         #Eval
         self.pred_actions = pred_actions
         self.pred_loss = pred_loss
@@ -201,84 +200,58 @@ class GelSight():
         return feed_dict 
 
     def load_data(self):
-        self.images = np.load(self.path + 'inputs.npy').transpose(0,2,3,1)
-        self.mean = self.images.mean() #assumes the means are same across the channels which is true for sim data
-        self.std = self.images.std() #assumes the stds are same across the channels which is true for sim data
-        if self.discreteAction:
-          self.actions = np.load(self.path + 'rho_theta_one_hot.npy')
-        else:
-          self.actions = np.load(self.path + 'input_actions.npy')
+        fnames = os.listdir(self.path)
+        self.images = np.zeros((TrainSplit+ValSplit,Episode_Len,IM_SIZE[0],IM_SIZE[1],CHANNELS))
+        self.actions = np.zeros((TrainSplit+ValSplit,Episode_Len,CHANNELS)) 
+        for ii  in range(TrainSplit+ValSplit):
+          data  = dd.io.load(self.path + fnames[ii],'/')
+          if np.mod(ii,10) == 0:
+            print("The idx is {}".format(ii))
+          for jj in range(18):
+            self.images[ii,jj,...] = data['img_'+str(jj)]
+            self.actions[ii,jj,...] = data['action_'+str(jj)]
+        print("We are taking the mean based on the first 50 samples")
+        self.mean = self.images[:50,...].mean() #assumes the means are same across the channels which is true for sim data
+        self.std = self.images[:50].std() #assumes the stds are same across the channels which is true for sim data
         if self.normalize:
           print("Mean subtraction, Std Dev for image")
           self.images = (self.images -  self.mean)/self.std
-        self.goal_images = np.load(self.path + 'outputs.npy')
-        if self.normalize:
-          print("Mean subtraction, Std Dev for target image")
-          self.goal_images = (self.goal_images - self.mean)/self.std
         if self.normalize and self.discreteAction==False:
           print("Normalize actions")
           self.actions = (self.actions - self.actions.mean(axis=0)) / self.actions.std(axis=0)
         return
 
-    def order_data(self,lag=1):
-        #init
-        episode_len = 50-lag
-        inputs = np.zeros((980*episode_len,IM_SIZE0,IM_SIZE0,CHANNELS))
-        outputs = np.zeros((980*episode_len,IM_SIZE0,IM_SIZE0,CHANNELS))
-        #Loop from 0 to IM_SIZE0 (number of episodes). 980 because the job died?
-        for ii in range(980):
-        #For each input up to end-lag, take the output by shifting by lag
-            inputs[(ii*episode_len):((ii+1) * episode_len)] = self.images[(ii*episode_len):((ii+1)*episode_len)]
-            outputs[((ii*episode_len) + lag): ((ii+1) *episode_len)] = self.goal_images[((ii*episode_len)+lag) : ((ii+1)* episode_len)]
-        self.images = inputs
-        self.goal_images = outputs
-        return
-
 
     def generate_gelsight_data(self,isTraining=True):
         if isTraining:
-          idx = np.random.randint(0,TrainSplit,BATCH_SIZE)
+          idx1 = np.random.randint(0,TrainSplit,BATCH_SIZE)
+          idx2 = np.random.randint(0,Episode_Len-1,BATCH_SIZE)
+
         else:
-          idx = np.random.randint(TrainSplit,self.images.shape[0],self.images.shape[0]-TrainSplit)
-          #idx = np.arange(self.images.shape[0]-100,self.images.shape[0])
+          idx1 = np.random.randint(TrainSplit,self.images.shape[0],ValSplit)
+          idx2 = np.random.randint(0,Episode_Len-1,ValSplit)
         #resizing to address the 200 200 issue
-        tmp_im = np.zeros((len(idx),IM_SIZE,IM_SIZE,CHANNELS))
-        tmp_goal_im = np.zeros((len(idx),IM_SIZE,IM_SIZE,CHANNELS))
-        shift_val_x = np.random.randint(-5,5,1).flatten()
-        shift_val_y = np.random.randint(-5,5,1).flatten()
-        for ii in range(len(idx)):
-            tmp_im[ii,...] = shift(resize(self.images[idx[ii],...],[IM_SIZE,IM_SIZE]),[shift_val_y,shift_val_x,0],mode='wrap',order=0)
-            tmp_goal_im[ii,...] = shift(resize(self.goal_images[idx[ii],...], [IM_SIZE, IM_SIZE]),[shift_val_y,shift_val_x,0],mode='wrap',order=0)
-        '''
-        tmp_im = self.images[idx,...]
-        tmp_goal_im = self.goal_images[idx,...]
-        '''
+        tmp_im = np.zeros((len(idx1),IM_SIZE[0],IM_SIZE[1],CHANNELS))
+        tmp_action = np.zeros((len(idx2),ACTION_DIMS))
+        for ii in np.arange(len(idx1)):
+            tmp_im[ii,...] = self.images[idx1[ii],idx2[ii]+1,...] -  self.images[idx1[ii],idx2[ii],...]
+            tmp_action[ii,...] = self.actions[idx1[ii],idx2[ii],...]
+
+        #tmp_goal_im = np.zeros((len(idx),IM_SIZE[0],IM_SIZE[1],CHANNELS))
         if self.diffIm: #No Goal Im
           if self.discreteAction:
             feed_dict = {
-            self.image_PH:tmp_im - tmp_goal_im,
+            self.image_PH:tmp_im,
             self.gtTheta_PH:self.actions[1][idx],#theta is the second array
             self.gtRho_PH:self.actions[0][idx],#rho is the first array
             }
           else:
             feed_dict = {
-            self.image_PH:tmp_im - tmp_goal_im,
-            self.gtAction_PH:self.actions[idx,...],
+            self.image_PH:tmp_im ,
+            self.gtAction_PH:tmp_action,
             }
         else:
-          if self.discreteAction:
-            feed_dict = {
-            self.goal_image_PH:tmp_goal_im,
-            self.image_PH:tmp_im,
-            self.gtTheta_PH:self.actions[1][idx],#theta is the second array
-            self.gtRho_PH:self.actions[0][idx],#rho is the first array
-            }
-          else:
-            feed_dict = {
-            self.goal_image_PH:tmp_goal_im,
-            self.image_PH:tmp_im,
-            self.gtAction_PH:self.actions[idx,...],
-            }
+            raise NotImplementedError("Aaaah we did not implent this")
         return feed_dict 
 
 
@@ -290,23 +263,6 @@ class GelSight():
 
             ops_to_run = []
             ops_to_run.append(self.pred_loss)
-            '''
-            if ii < self.unfreeze_time:
-                ops_to_run.append(self.optimize_action_no_alex)
-                if self.fwd_consist:
-                    ops_to_run.append(self.optimize_fwd_freeze)
-                    if self.autoencode and i < self.unfreeze_time * (2/3):
-                        feed_dict[self.autoencode_ph] = True
-                if self.gtAction:
-                    feed_dict[self.gtAction_ph] = True
-            else:
-                if self.fwd_consist:
-                    ops_to_run.append(self.optimize_fwd_full)
-                    ops_to_run.append(self.optimize_action_full)
-                else:
-                    ops_to_run.append(self.optimize_action_alex)
-            '''
-            #We are not dealing with fwd freeze loss. ###BEWARE#### NO FREEZE or AUTOENCODE
             ops_to_run.append(self.optimize_action_alex)
 
             ops_to_run.append(self.train_summaries)
@@ -361,5 +317,5 @@ if __name__ == "__main__":
     parsed.discrete = str2bool(parsed.discrete)
     print("Job Parameters are")
     print(parsed)
-    GS = GelSight(name=parsed.name,fwd_consist = parsed.fwd,DEBUG=parsed.debug,discreteAction=parsed.discrete,action_lr=parsed.action_lr,diffIm=parsed.diffIm,optimizer=parsed.optimizer,saved_model = parsed.load_model)
+    GS = GelSight(name=parsed.name,DEBUG=parsed.debug,discreteAction=parsed.discrete,action_lr=parsed.action_lr,diffIm=parsed.diffIm,optimizer=parsed.optimizer)
     GS.train(parsed.niters)
